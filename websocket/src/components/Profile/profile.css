@@ -1,0 +1,259 @@
+/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.whatsapp-profile {
+  background-color: #f0f2f5;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  width: 80%;
+  margin: 0 auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  position: absolute;
+  top: 0;
+}
+
+.profile-header {
+  background-color: #00a884;
+  color: white;
+  padding: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.btn-back:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.profile-header h5 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* Profile Image Section */
+.profile-image-section {
+  padding: 2rem 1rem;
+  text-align: center;
+  background-color: white;
+  margin-bottom: 0.5rem;
+}
+
+.profile-image-container {
+  position: relative;
+  display: inline-block;
+}
+
+.profile-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #e8e8e8;
+}
+
+.btn-camera {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: #00a884;
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.btn-camera:hover {
+  background-color: #008f70;
+}
+
+/* Profile Info */
+.profile-info {
+  background-color: white;
+}
+
+.info-item {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 0 1rem;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-content {
+  display: flex;
+  align-items: center;
+  justify-content: between;
+  padding: 1rem 0;
+}
+
+.info-text {
+  flex: 1;
+}
+
+.info-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #00a884;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.info-value {
+  margin: 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.edit-icon {
+  color: #8696a0;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.edit-icon:hover {
+  background-color: #f0f0f0;
+}
+
+/* Action Buttons */
+.profile-actions {
+  background-color: white;
+  margin-top: 0.5rem;
+  padding: 0 1rem;
+}
+
+.btn-action {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 1rem 0;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: background-color 0.2s;
+}
+
+.btn-action:hover {
+  background-color: #f8f9fa;
+}
+
+.btn-action:last-child {
+  border-bottom: none;
+}
+
+.btn-danger {
+  color: #e74c3c !important;
+}
+
+.btn-action i {
+  font-size: 1.2rem;
+  width: 24px;
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .whatsapp-profile {
+    max-width: 100%;
+    min-height: 100vh;
+  }
+
+  .profile-image {
+    width: 120px;
+    height: 120px;
+  }
+
+  .btn-camera {
+    width: 35px;
+    height: 35px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-header {
+    padding: 0.875rem 1rem;
+  }
+
+  .profile-image-section {
+    padding: 1.5rem 1rem;
+  }
+
+  .profile-image {
+    width: 100px;
+    height: 100px;
+  }
+
+  .info-content {
+    padding: 0.875rem 0;
+  }
+
+  .info-value {
+    font-size: 0.95rem;
+  }
+
+  .btn-action {
+    padding: 0.875rem 0;
+    font-size: 0.95rem;
+  }
+}
+
+/* Bootstrap Icons Base Styles */
+/* @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"); */
+
+/* Custom Scrollbar */
+.whatsapp-profile::-webkit-scrollbar {
+  width: 6px;
+}
+
+.whatsapp-profile::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.whatsapp-profile::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.whatsapp-profile::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
