@@ -287,13 +287,11 @@ io.on("connection", (socket) => {
   });
 });
 
-// Serve static files for production
-app.use(express.static(path.join(__dirname, "../websocket/dist")));
+// app.use(express.static(path.join(__dirname, "../websocket/dist")));
 
-// Catch all handler for SPA
-app.get(/^\/(?!api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, "../websocket/dist", "index.html"));
-});
+// app.get(/^\/(?!api).*/, (req, res) => {
+//   res.sendFile(path.join(__dirname, "../websocket/dist", "index.html"));
+// });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
