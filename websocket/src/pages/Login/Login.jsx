@@ -23,7 +23,7 @@ const Login = () => {
     }
     try {
       const res = await axios.post(
-        "http://localhost:2000/api/users/login",
+        " https://chat-application-3-d7ex.onrender.com/api/users/login",
         { email, password },
         { withCredentials: true }
       );

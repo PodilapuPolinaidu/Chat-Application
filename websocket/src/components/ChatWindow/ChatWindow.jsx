@@ -496,7 +496,7 @@ const ChatWindow = React.memo(
         setIsLoading(true);
         try {
           const response = await fetch(
-            `http://localhost:2000/api/chat/${currentUser.id}/${receiver.id}`
+            ` https://chat-application-3-d7ex.onrender.com/api/chat/${currentUser.id}/${receiver.id}`
           );
           const data = await response.json();
           setMessages(Array.isArray(data) ? data : []);

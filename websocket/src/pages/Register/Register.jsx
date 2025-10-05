@@ -57,7 +57,7 @@ export default function Register() {
 
   async function sendForm(obj) {
     try {
-      await axios.post("http://localhost:2000/api/users/register", obj);
+      await axios.post(" https://chat-application-3-d7ex.onrender.com/api/users/register", obj);
       Swal.fire({
         title: "Success!",
         text: "Chat account created successfully",

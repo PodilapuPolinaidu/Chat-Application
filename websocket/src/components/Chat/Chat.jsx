@@ -34,7 +34,7 @@ const Chat = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://localhost:2000/api/users");
+        const response = await fetch(" https://chat-application-3-d7ex.onrender.com/api/users");
         const data = await response.json();
 
         const filteredUsers = data.filter((u) => u.id !== cookieId);
