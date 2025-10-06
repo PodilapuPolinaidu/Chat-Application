@@ -15,6 +15,18 @@ const Chat = () => {
     receiverUser: false,
   });
   useEffect(() => {
+    // In /home route
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const email = params.get("email");
+    const userId = params.get("id");
+
+    if (token) {
+      document.cookie = `token=${token}; path=/`;
+      document.cookie = `email=${email}; path=/`;
+      document.cookie = `id=${userId}; path=/`;
+    }
+
     const getCookieId = () => {
       const value = `; ${document.cookie}`;
       const parts = value.split(`; id=`);
@@ -34,7 +46,7 @@ const Chat = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await fetch(" https://chat-application-3-d7ex.onrender.com/api/users");
+        const response = await fetch("http://localhost:2000/api/users");
         const data = await response.json();
 
         const filteredUsers = data.filter((u) => u.id !== cookieId);

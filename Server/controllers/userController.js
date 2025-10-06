@@ -62,6 +62,21 @@ const loginUser = async (req, res) => {
   }
 };
 
+async function findOrCreateUser(profile) {
+  const email = profile._json.preferred_username || profile._json.email;
+  let user = await userModel.findUserByEmail(email);
+
+  if (!user) {
+    user = await userModel.createUser(
+      profile.displayName,
+      email,
+      "OAuth User",
+      profile._json.picture || ""
+    );
+  }
+  return user;
+}
+
 const getUsers = async (req, res) => {
   try {
     const users = await userModel.getAllUsers();
@@ -71,4 +86,4 @@ const getUsers = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getUsers };
+module.exports = { registerUser, loginUser, getUsers, findOrCreateUser };

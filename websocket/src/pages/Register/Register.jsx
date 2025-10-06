@@ -3,6 +3,8 @@ import "./Register.css";
 import axios from "axios";
 import Swal from "sweetalert2";
 import "bootstrap-icons/font/bootstrap-icons.css";
+// import { signInWithPopup } from "firebase/auth";
+// import { auth, provider } from "../../Firebase";
 export default function Register() {
   const [formData, setFormData] = useState({
     name: "",
@@ -57,7 +59,7 @@ export default function Register() {
 
   async function sendForm(obj) {
     try {
-      await axios.post(" https://chat-application-3-d7ex.onrender.com/api/users/register", obj);
+      await axios.post("http://localhost:2000/api/users/register", obj);
       Swal.fire({
         title: "Success!",
         text: "Chat account created successfully",
@@ -87,6 +89,23 @@ export default function Register() {
       setIsLoading(false);
     }
   }
+
+  // async function handleLogin() {
+  //   try {
+  //     const loginResponse = await signInWithPopup(auth, provider);
+  //     const user = loginResponse.user;
+  //     const userData = {
+  //       name: user.displayName,
+  //       email: user.email,
+  //       password: "No password",
+  //       profileImage: user.photoURL,
+  //     };
+  //     await axios.post("http://localhost:2000/api/users/signin", userData);
+  //     window.location.href = "/home";
+  //   } catch (error) {
+  //     console.error("Login error:", error);
+  //   }
+  // }
 
   return (
     <div className="register-page">
@@ -233,9 +252,18 @@ export default function Register() {
                     <i className="bi bi-github"></i>
                     Continue with GitHub
                   </button>
-                  <button className="oauth-btn facebook-btn">
-                    <i className="bi bi-facebook"></i>
-                    Continue with Facebook
+                  <button
+                    className="oauth-btn microsoft-btn"
+                    onClick={() => {
+                      window.location.href =
+                        "https://verna-sthenic-chae.ngrok-free.dev/api/users/auth/microsoft";
+                    }}
+                  >
+                    <i
+                      className="bi bi-microsoft"
+                      style={{ paddingRight: "10px" }}
+                    ></i>
+                    Continue with Microsoft
                   </button>
                 </div>
 

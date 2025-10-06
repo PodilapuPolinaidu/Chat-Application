@@ -8,9 +8,24 @@ const chatRoutes = require("./routes/chatRoutes");
 const chatController = require("./controllers/chatController");
 const db = require("./config/db");
 const path = require("path");
-
+const cookieParser = require("cookie-parser")
+// import session from "express-session";
+const session = require("express-session");
+const passport = require("passport");
 const app = express();
-
+const { findUserById } = require("./models/userModel");
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: [
+      "http://localhost:5173",
+      "https://verna-sthenic-chae.ngrok-free.dev",
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+app.use(cookieParser());
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -19,23 +34,66 @@ app.use(
   })
 );
 
+app.use(
+  session({
+    secret: "your_secret_key",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(express.json());
 
 app.use("/api/users", userRoutes);
 app.use("/api/chat", chatRoutes);
+const MicrosoftStrategy = require("passport-microsoft").Strategy;
 
-const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
+passport.use(
+  new MicrosoftStrategy(
+    {
+      clientID: process.env.MICROSOFT_CLIENT_ID,
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+      callbackURL: process.env.MICROSOFT_CALLBACK_URL,
+      scope: ["user.read"],
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails?.[0]?.value;
+        const name = profile.displayName;
+        const profileImage = profile.photoURL;
+        const [rows] = await db.query("SELECT * FROM users WHERE email = ?", [
+          email,
+        ]);
+        let user;
+
+        if (rows.length > 0) {
+          user = rows[0];
+        } else {
+          const [result] = await db.query(
+            "INSERT INTO users (name, email,password, profile_image) VALUES (?, ?, ?, ?)",
+            [name, email, "Signin with microsoft", profileImage]
+          );
+          user = { id: result.insertId, name, email };
+        }
+
+        done(null, user);
+      } catch (error) {
+        done(error, null);
+      }
+    }
+  )
+);
+
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser(async (id, done) => {
+  const user = await findUserById(id);
+  done(null, user);
 });
 
-// Store online users and their socket connections
-const onlineUsers = new Map(); // userId -> Set of socketIds
-const userSocketMap = new Map(); // socketId -> userId
+const onlineUsers = new Map();
+const userSocketMap = new Map();
 
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
@@ -287,11 +345,11 @@ io.on("connection", (socket) => {
   });
 });
 
-// app.use(express.static(path.join(__dirname, "../websocket/dist")));
+app.use(express.static(path.join(__dirname, "../websocket/dist")));
 
-// app.get(/^\/(?!api).*/, (req, res) => {
-//   res.sendFile(path.join(__dirname, "../websocket/dist", "index.html"));
-// });
+app.get(/^\/(?!api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "../websocket/dist", "index.html"));
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
