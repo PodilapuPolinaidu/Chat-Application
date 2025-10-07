@@ -32,11 +32,13 @@ const chatController = {
 
   async saveMessageForSocket(messageData) {
     try {
-      const { senderId, receiverId, content } = messageData;
+      const { senderId, receiverId, content, senderName } = messageData;
+      console.log(senderName);
       const savedMessage = await chatModel.saveMessage({
         senderId: senderId,
         receiverId: receiverId,
         content: content,
+        senderName: senderName,
       });
       return savedMessage;
     } catch (error) {

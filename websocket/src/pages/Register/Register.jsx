@@ -256,7 +256,7 @@ export default function Register() {
                     className="oauth-btn microsoft-btn"
                     onClick={() => {
                       window.location.href =
-                        "https://verna-sthenic-chae.ngrok-free.dev/api/users/auth/microsoft";
+                        "http://localhost:2000/api/users/auth/microsoft";
                     }}
                   >
                     <i

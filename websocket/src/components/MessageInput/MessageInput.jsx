@@ -25,7 +25,7 @@ const MessageInput = React.memo(({ onSendMessage }) => {
   const handleInputChange = (e) => {
     setText(e.target.value);
 
-    if (textareaRef.current) {
+    if (textareaRef.current) {  
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height =
         Math.min(textareaRef.current.scrollHeight, 120) + "px";

@@ -3,6 +3,7 @@ import UsersList from "../UsersList/UsersList";
 import ChatWindow from "../ChatWindow/ChatWindow";
 import Profile from "../Profile/Profile";
 import "./chat.css";
+import axios from "axios";
 
 const Chat = () => {
   const [users, setUsers] = useState([]);
@@ -15,12 +16,10 @@ const Chat = () => {
     receiverUser: false,
   });
   useEffect(() => {
-    // In /home route
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
     const email = params.get("email");
     const userId = params.get("id");
-
     if (token) {
       document.cookie = `token=${token}; path=/`;
       document.cookie = `email=${email}; path=/`;
@@ -36,8 +35,12 @@ const Chat = () => {
       return null;
     };
 
-    const id = getCookieId();
-    setCookieId(id);
+    if (userId) {
+      setCookieId(Number(userId));
+    } else {
+      const id = getCookieId();
+      setCookieId(id);
+    }
   }, []);
 
   useEffect(() => {
@@ -46,8 +49,8 @@ const Chat = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://localhost:2000/api/users");
-        const data = await response.json();
+        const response = await axios.get("http://localhost:2000/api/users");
+        const data = response.data;
 
         const filteredUsers = data.filter((u) => u.id !== cookieId);
         const userData = data.find((u) => u.id === cookieId);
@@ -64,7 +67,6 @@ const Chat = () => {
     fetchUsers();
   }, [cookieId]);
 
-  // Memoized user selection handler
   const handleUserSelect = useCallback((user) => {
     setSelectedUser(user);
     setStatus((prev) => ({

@@ -29,10 +29,12 @@
 }
 
 .message-sender {
-  font-size: 12px;
+  font-size: 15px;
   color: #4a5568;
   margin-bottom: 4px;
-  margin-left: 8px;
+  /* margin-left: 8px; */
+  color: green;
+
   font-weight: 600;
 }
 

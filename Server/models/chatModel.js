@@ -26,11 +26,11 @@ ORDER BY m.timestamp ASC;`,
     }
   },
 
-  saveMessage: async ({ senderId, receiverId, content }) => {
+  saveMessage: async ({ senderId, receiverId, content, senderName }) => {
     try {
       const [result] = await db.query(
-        "INSERT INTO messages (senderId, receiverId, content, status) VALUES (?, ?, ?, ?)",
-        [senderId, receiverId, content, "sent"]
+        "INSERT INTO messages (senderId, receiverId, content, status, senderName) VALUES (?, ?, ?, ?, ?)",
+        [senderId, receiverId, content, "sent", senderName]
       );
 
       const [savedRows] = await db.query(

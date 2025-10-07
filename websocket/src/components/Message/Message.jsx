@@ -4,7 +4,6 @@ import { BsCheck, BsCheckAll } from "react-icons/bs";
 
 const Message = React.memo(({ message, isOwn }) => {
   const d = new Date(message.timestamp);
-
   const isSameDay = (d1, d2) =>
     d1.getFullYear() === d2.getFullYear() &&
     d1.getMonth() === d2.getMonth() &&
@@ -28,7 +27,7 @@ const Message = React.memo(({ message, isOwn }) => {
     : formatDate(message.timestamp);
 
   const renderStatusIcon = () => {
-    if (!isOwn) return null; // only show ticks for my messages
+    if (!isOwn) return null;
 
     switch (message.status) {
       case "pending":
@@ -63,8 +62,8 @@ const Message = React.memo(({ message, isOwn }) => {
   return (
     <div className={`messages ${isOwn ? "message-own" : "message-other"}`}>
       <div className="message-content">
-        {!isOwn && <div className="message-sender">{message.sender}</div>}
         <div className="message-bubble">
+        {!isOwn && <div className="message-sender">{message.senderName}</div>}
           <p>{message.content}</p>
           <div className="message-meta">
             <span className="message-time">

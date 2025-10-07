@@ -16,11 +16,12 @@
 }
 
 .user-item:hover {
-  background: #f7fafc;
+  background: #d7e7f3;
+  /* color: white !important; */
 }
 
 .user-active {
-  background: #edf2f7 !important;
+  background: #ccdcec !important;
   border-left: 4px solid #667eea;
 }
 

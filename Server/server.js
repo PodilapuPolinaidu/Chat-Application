@@ -8,18 +8,17 @@ const chatRoutes = require("./routes/chatRoutes");
 const chatController = require("./controllers/chatController");
 const db = require("./config/db");
 const path = require("path");
-const cookieParser = require("cookie-parser")
-// import session from "express-session";
+const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const passport = require("passport");
 const app = express();
 const { findUserById } = require("./models/userModel");
 const server = http.createServer(app);
+
 const io = socketIo(server, {
   cors: {
     origin: [
-      "http://localhost:5173",
-      "https://verna-sthenic-chae.ngrok-free.dev",
+      "http://localhost:5173"
     ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -48,6 +47,7 @@ app.use(express.json());
 
 app.use("/api/users", userRoutes);
 app.use("/api/chat", chatRoutes);
+// app.use("/uploads", express.static(path.join(__dirname, "..", uploads)));
 const MicrosoftStrategy = require("passport-microsoft").Strategy;
 
 passport.use(
@@ -94,6 +94,7 @@ passport.deserializeUser(async (id, done) => {
 
 const onlineUsers = new Map();
 const userSocketMap = new Map();
+const activeCalls = new Map();
 
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
@@ -101,33 +102,26 @@ io.on("connection", (socket) => {
   // Join room for private messaging
   socket.on("join_room", (room) => {
     socket.join(room);
-    console.log(`User ${socket.id} joined room: ${room}`);
   });
 
   // Leave room
   socket.on("leave_room", (room) => {
     socket.leave(room);
-    console.log(`User ${socket.id} left room: ${room}`);
   });
 
   // User goes online
   socket.on("user_online", (userId) => {
     if (!userId) return;
 
-    // Store user-socket mapping
     userSocketMap.set(socket.id, userId);
 
-    // Add socket to user's socket set
     const sockets = onlineUsers.get(userId) || new Set();
     sockets.add(socket.id);
     onlineUsers.set(userId, sockets);
 
-    // Broadcast online users list
     const onlineUserIds = Array.from(onlineUsers.keys());
     io.emit("online_users", onlineUserIds);
     socket.broadcast.emit("user_online", userId);
-
-    console.log("User came online:", userId, "current online:", onlineUserIds);
   });
 
   // Handle sending messages
@@ -185,93 +179,127 @@ io.on("connection", (socket) => {
     }
   });
 
-  // CALL FUNCTIONALITY
-
-  // Initiate call to user
   socket.on("callUser", ({ targetUserId, from, callerId, callType }) => {
-    console.log(
-      `Call initiated from ${from} (${callerId}) to ${targetUserId}, type: ${callType}`
-    );
 
     const receiverSockets = onlineUsers.get(targetUserId);
 
     if (receiverSockets && receiverSockets.size > 0) {
-      // Send incoming call notification to all receiver's sockets
+      // Store call info
+      const callId = `${callerId}_${targetUserId}_${Date.now()}`;
+      activeCalls.set(callId, {
+        callerId,
+        targetUserId,
+        callType,
+        status: "ringing",
+        startTime: Date.now(),
+      });
+
       for (const rSockId of receiverSockets) {
         io.to(rSockId).emit("incomingCall", {
           from,
-          callerId: callerId, // Use the actual caller user ID, not socket ID
+          callerId,
           callType,
+          callId,
         });
       }
-      console.log(`Incoming call sent to user ${targetUserId}`);
+
+      socket.emit("callInitiated", { callId });
+
+      console.log(
+        `Incoming call sent to user ${targetUserId}, callId: ${callId}`
+      );
     } else {
-      // Notify caller that target is offline
-      socket.emit("callRejected");
+      socket.emit("callRejected", { reason: "User is offline" });
       console.log(`Call failed: User ${targetUserId} is offline`);
     }
   });
 
-  // Accept incoming call
-  socket.on("acceptCall", ({ callerId }) => {
+  // Handle call acceptance
+  socket.on("acceptCall", ({ callId, callerId }) => {
     const userId = userSocketMap.get(socket.id);
-    console.log(`Call accepted by ${userId} for caller ${callerId}`);
+    console.log(
+      `Call accepted by ${userId} for caller ${callerId}, callId: ${callId}`
+    );
+
+    // Update call status
+    const call = activeCalls.get(callId);
+    if (call) {
+      call.status = "active";
+      call.answererId = userId;
+      activeCalls.set(callId, call);
+    }
 
     // Find caller's sockets
     const callerSockets = onlineUsers.get(callerId);
     if (callerSockets && callerSockets.size > 0) {
       for (const callerSocketId of callerSockets) {
         io.to(callerSocketId).emit("callAccepted", {
-          answerFrom: userId, // Send the user ID who accepted
+          answerFrom: userId,
+          callId,
         });
       }
     }
   });
 
-  // Reject incoming call
-  socket.on("rejectCall", ({ callerId }) => {
+  // Handle call rejection
+  socket.on("rejectCall", ({ callId, callerId }) => {
     const userId = userSocketMap.get(socket.id);
-    console.log(`Call rejected by ${userId}`);
+    console.log(`Call rejected by ${userId}, callId: ${callId}`);
+
+    // Remove call from active calls
+    activeCalls.delete(callId);
 
     // Notify caller
     const callerSockets = onlineUsers.get(callerId);
     if (callerSockets && callerSockets.size > 0) {
       for (const callerSocketId of callerSockets) {
-        io.to(callerSocketId).emit("callRejected");
+        io.to(callerSocketId).emit("callRejected", {
+          reason: "Call rejected",
+          callId,
+        });
       }
     }
   });
 
-  // Cancel outgoing call
-  socket.on("cancelCall", ({ targetUserId }) => {
-    console.log(`Call canceled to ${targetUserId}`);
+  // Handle call cancellation (caller cancels before answer)
+  socket.on("cancelCall", ({ callId, targetUserId }) => {
+    console.log(`Call canceled to ${targetUserId}, callId: ${callId}`);
+
+    // Remove call from active calls
+    activeCalls.delete(callId);
 
     // Notify target user
     const targetSockets = onlineUsers.get(targetUserId);
     if (targetSockets && targetSockets.size > 0) {
       for (const targetSocketId of targetSockets) {
-        io.to(targetSocketId).emit("callCanceled");
+        io.to(targetSocketId).emit("callCanceled", { callId });
       }
     }
   });
 
-  // End active call
-  socket.on("endCall", ({ targetUserId }) => {
-    console.log(`Call ended with ${targetUserId}`);
+  // Handle call end
+  socket.on("endCall", ({ callId, targetUserId }) => {
+    console.log(`Call ended with ${targetUserId}, callId: ${callId}`);
+
+    // Remove call from active calls
+    const call = activeCalls.get(callId);
+    if (call) {
+      const duration = Date.now() - call.startTime;
+      console.log(`Call duration: ${Math.round(duration / 1000)} seconds`);
+      activeCalls.delete(callId);
+    }
 
     // Notify target user
     const targetSockets = onlineUsers.get(targetUserId);
     if (targetSockets && targetSockets.size > 0) {
       for (const targetSocketId of targetSockets) {
-        io.to(targetSocketId).emit("callEnded");
+        io.to(targetSocketId).emit("callEnded", { callId });
       }
     }
   });
 
-  // WebRTC Signaling
-
-  // Handle WebRTC offer
-  socket.on("webrtcOffer", ({ target, sdp }) => {
+  // WebRTC signaling events
+  socket.on("webrtcOffer", ({ target, sdp, callId }) => {
     console.log("WebRTC offer received, forwarding to:", target);
 
     const targetSockets = onlineUsers.get(target);
@@ -279,14 +307,14 @@ io.on("connection", (socket) => {
       for (const targetSocketId of targetSockets) {
         io.to(targetSocketId).emit("webrtcOffer", {
           sdp,
-          from: userSocketMap.get(socket.id), // Send user ID instead of socket ID
+          from: userSocketMap.get(socket.id),
+          callId,
         });
       }
     }
   });
 
-  // Handle WebRTC answer
-  socket.on("webrtcAnswer", ({ target, sdp }) => {
+  socket.on("webrtcAnswer", ({ target, sdp, callId }) => {
     console.log("WebRTC answer received, forwarding to:", target);
 
     const targetSockets = onlineUsers.get(target);
@@ -295,39 +323,33 @@ io.on("connection", (socket) => {
         io.to(targetSocketId).emit("webrtcAnswer", {
           sdp,
           from: userSocketMap.get(socket.id),
+          callId,
         });
       }
     }
   });
 
-  // Handle ICE candidates
-  socket.on("iceCandidate", ({ target, candidate }) => {
-    console.log("ICE candidate received, forwarding to:", target);
-
+  socket.on("iceCandidate", ({ target, candidate, callId }) => {
     const targetSockets = onlineUsers.get(target);
     if (targetSockets && targetSockets.size > 0) {
       for (const targetSocketId of targetSockets) {
         io.to(targetSocketId).emit("iceCandidate", {
           candidate,
           from: userSocketMap.get(socket.id),
+          callId,
         });
       }
     }
   });
-
-  // Handle disconnection
   socket.on("disconnect", () => {
     const userId = userSocketMap.get(socket.id);
     console.log("Socket disconnected:", socket.id, "User:", userId);
-
-    // Clean up user tracking
     if (userId) {
       const sockets = onlineUsers.get(userId);
       if (sockets) {
         sockets.delete(socket.id);
         if (sockets.size === 0) {
           onlineUsers.delete(userId);
-          // Broadcast that user went offline
           socket.broadcast.emit("user_offline", userId);
           console.log("User went offline:", userId);
         } else {
@@ -336,8 +358,6 @@ io.on("connection", (socket) => {
       }
       userSocketMap.delete(socket.id);
     }
-
-    // Update online users list for all clients
     const onlineUserIds = Array.from(onlineUsers.keys());
     io.emit("online_users", onlineUserIds);
 
@@ -351,7 +371,6 @@ app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "../websocket/dist", "index.html"));
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
   res.status(500).json({ error: "Internal server error" });
