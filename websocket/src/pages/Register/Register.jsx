@@ -90,23 +90,6 @@ export default function Register() {
     }
   }
 
-  // async function handleLogin() {
-  //   try {
-  //     const loginResponse = await signInWithPopup(auth, provider);
-  //     const user = loginResponse.user;
-  //     const userData = {
-  //       name: user.displayName,
-  //       email: user.email,
-  //       password: "No password",
-  //       profileImage: user.photoURL,
-  //     };
-  //     await axios.post("http://localhost:2000/api/users/signin", userData);
-  //     window.location.href = "/home";
-  //   } catch (error) {
-  //     console.error("Login error:", error);
-  //   }
-  // }
-
   return (
     <div className="register-page">
       <div className="register-container">
