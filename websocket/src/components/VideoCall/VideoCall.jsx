@@ -102,7 +102,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
           video: callType === "video",
           audio: true,
         });
-        console.log(stream)
         localStreamRef.current = stream;
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;

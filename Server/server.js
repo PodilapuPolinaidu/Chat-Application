@@ -175,7 +175,7 @@ io.on("connection", (socket) => {
     const receiverSockets = onlineUsers.get(targetUserId);
 
     if (receiverSockets && receiverSockets.size > 0) {
-      // Store call info
+   
       const callId = `${callerId}_${targetUserId}_${Date.now()}`;
       activeCalls.set(callId, {
         callerId,

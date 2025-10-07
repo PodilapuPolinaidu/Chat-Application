@@ -130,12 +130,6 @@ const CallModal = ({
                   </div>
                   <span className="participant-name">You</span>
                 </div>
-                {/* <div className="participant">
-                  <div className="participant-avatar small">
-                    {receiver.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="participant-name">{receiver.name}</span>
-                </div> */}
               </div>
             )}
           </div>
@@ -145,7 +139,6 @@ const CallModal = ({
           <div className="call-info">
             <h2 className="call-title">{getCallTitle()}</h2>
             <p className="call-subtitle">{getCallSubtitle()}</p>
-            <div className="call-status">{getCallStatus()}</div>
           </div>
         )}
 
