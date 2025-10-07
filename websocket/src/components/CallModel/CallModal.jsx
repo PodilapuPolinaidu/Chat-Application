@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "./CallModal.css";
+import "./callModal.css";
 
 const CallModal = ({
   callState,
