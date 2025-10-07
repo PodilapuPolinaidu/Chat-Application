@@ -27,7 +27,6 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://your-frontend-app.vercel.app", // Your actual Vercel frontend URL
 ];
-
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -370,11 +369,11 @@ io.on("connection", (socket) => {
   });
 });
 
-app.use(express.static(path.join(__dirname, "../websocket/dist")));
+// app.use(express.static(path.join(__dirname, "../websocket/dist")));
 
-app.get(/^\/(?!api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, "../websocket/dist", "index.html"));
-});
+// app.get(/^\/(?!api).*/, (req, res) => {
+//   res.sendFile(path.join(__dirname, "../websocket/dist", "index.html"));
+// });
 
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
