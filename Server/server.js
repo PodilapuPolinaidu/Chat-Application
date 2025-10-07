@@ -17,9 +17,7 @@ const server = http.createServer(app);
 
 const io = socketIo(server, {
   cors: {
-    origin: [
-      "http://localhost:5173"
-    ],
+    origin: ["http://localhost:5173"],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -101,6 +99,7 @@ io.on("connection", (socket) => {
 
   // Join room for private messaging
   socket.on("join_room", (room) => {
+    console.log("joined room");
     socket.join(room);
   });
 
@@ -114,7 +113,6 @@ io.on("connection", (socket) => {
     if (!userId) return;
 
     userSocketMap.set(socket.id, userId);
-
     const sockets = onlineUsers.get(userId) || new Set();
     sockets.add(socket.id);
     onlineUsers.set(userId, sockets);
@@ -130,19 +128,14 @@ io.on("connection", (socket) => {
       const savedMessage = await chatController.saveMessageForSocket(data);
 
       // Find receiver's sockets
-      const receiverSockets =
-        onlineUsers.get(String(data.receiverId)) ||
-        onlineUsers.get(Number(data.receiverId));
-
+      const receiverSockets = onlineUsers.get(Number(data.receiverId));
       if (receiverSockets && receiverSockets.size > 0) {
-        // Update message status to delivered
         await db.query(
           "UPDATE messages SET status = 'delivered' WHERE id = ?",
           [savedMessage.id]
         );
         savedMessage.status = "delivered";
 
-        // Send to all receiver's sockets
         for (const rSockId of receiverSockets) {
           io.to(rSockId).emit("receive_message", savedMessage);
         }
@@ -154,8 +147,7 @@ io.on("connection", (socket) => {
       callback({ error: "Failed to send message" });
     }
   });
-
-  // Message delivered
+  
   socket.on("message_delivered", async ({ messageId, room }) => {
     try {
       await db.query("UPDATE messages SET status = 'delivered' WHERE id = ?", [
@@ -180,7 +172,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("callUser", ({ targetUserId, from, callerId, callType }) => {
-
     const receiverSockets = onlineUsers.get(targetUserId);
 
     if (receiverSockets && receiverSockets.size > 0) {

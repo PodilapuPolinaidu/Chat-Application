@@ -13,7 +13,6 @@ import axios from "axios";
 import { VideoCall } from "../VideoCall/VideoCall";
 import CallModal from "../CallModel/CallModal";
 
-// Socket instance outside component
 const socket = io("http://localhost:2000", {
   autoConnect: false,
 });
@@ -212,8 +211,7 @@ const ChatWindow = React.memo(
         socket.off("message_read", handleMessageRead);
       };
     }, []);
-    // console.log(onlineUsers);
-    // Cleanup on unmount
+
     useEffect(() => {
       return () => {
         console.log("Component unmounting");

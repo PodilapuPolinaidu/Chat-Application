@@ -234,7 +234,18 @@
 .call-modal:not(.on-call) .call-avatar-large {
   animation: 1.5s ease-in-out infinite;
 }
-
+.remote-label {
+  position: absolute;
+  left: 5%;
+  top: 7%;
+  color: red !important;
+}
+.local-label {
+  position: absolute;
+  right: 21%;
+  bottom: 15%;
+  color: red !important;
+}
 /* Responsive Design */
 @media (max-width: 768px) {
   .call-modal {

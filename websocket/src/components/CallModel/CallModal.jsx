@@ -72,7 +72,7 @@ const CallModal = ({
 
   const getCallStatus = () => {
     if (callState.isIncomingCall) {
-      return "Incoming Call"; 
+      return "Incoming Call";
     } else if (callState.isCalling || callState.isRinging) {
       return "Calling...";
     } else if (callState.isOnCall) {
@@ -96,7 +96,6 @@ const CallModal = ({
                 />
                 <div className="video-label remote-label">
                   <span className="user-name">{receiver.name}</span>
-                  <span className="user-status">Online</span>
                 </div>
               </div>
 
@@ -109,8 +108,7 @@ const CallModal = ({
                   className="local-video"
                 />
                 <div className="video-label local-label">
-                  <span className="user-name">You</span>
-                  <span className="user-status">{currentUser.name}</span>
+                  <span className="user-status">{currentUser.name}(You)</span>
                 </div>
               </div>
             </div>

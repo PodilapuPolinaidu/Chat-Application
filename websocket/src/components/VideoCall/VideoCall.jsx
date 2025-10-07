@@ -102,7 +102,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
           video: callType === "video",
           audio: true,
         });
-
+        console.log(stream)
         localStreamRef.current = stream;
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
@@ -145,21 +145,17 @@ export const VideoCall = (socket, currentUser, receiver) => {
         localVideoRef.current.srcObject = stream;
       }
 
-      // Create peer connection
       peerConnectionRef.current = createPeerConnection();
 
-      // Create and set local description
       const offer = await peerConnectionRef.current.createOffer();
       await peerConnectionRef.current.setLocalDescription(offer);
 
-      // Send answer back to caller
       socket.emit("webrtcAnswer", {
         target: callState.callerInfo.callerId,
         sdp: peerConnectionRef.current.localDescription,
         callId: callState.callId,
       });
 
-      // Notify caller that call was accepted
       socket.emit("acceptCall", {
         callerId: callState.callerInfo.callerId,
         callId: callState.callId,
