@@ -3,8 +3,6 @@ import "./Register.css";
 import axios from "axios";
 import Swal from "sweetalert2";
 import "bootstrap-icons/font/bootstrap-icons.css";
-// import { signInWithPopup } from "firebase/auth";
-// import { auth, provider } from "../../Firebase";
 export default function Register() {
   const [formData, setFormData] = useState({
     name: "",

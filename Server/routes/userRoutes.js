@@ -33,7 +33,7 @@ router.get(
 router.get(
   "/auth/microsoft/callback",
   passport.authenticate("microsoft", {
-    failureRedirect: "http://localhost:2000",
+    failureRedirect: "http://localhost:5173",
     session: false,
   }),
   (req, res) => {
@@ -45,7 +45,7 @@ router.get(
     );
 
     res.redirect(
-      `http://localhost:2000/home?token=${token}&id=${user.id}&email=${user.email}`
+      `http://localhost:5173/home?token=${token}&id=${user.id}&email=${user.email}`
     );
   }
 );
