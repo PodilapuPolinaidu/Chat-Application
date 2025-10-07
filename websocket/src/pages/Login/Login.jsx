@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./Login.css";
+import "./login.css";
 import axios from "axios";
 import Swal from "sweetalert2";
 import "bootstrap-icons/font/bootstrap-icons.css";
