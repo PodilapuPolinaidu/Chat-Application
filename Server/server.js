@@ -23,19 +23,35 @@ const io = socketIo(server, {
   },
 });
 app.use(cookieParser());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://your-frontend-app.vercel.app", // Your actual Vercel frontend URL
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 
 app.use(
   session({
-    secret: "your_secret_key",
+    secret: process.env.SESSION_SECRET || "your_production_secret_key",
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
   })
 );
 
@@ -45,7 +61,6 @@ app.use(express.json());
 
 app.use("/api/users", userRoutes);
 app.use("/api/chat", chatRoutes);
-// app.use("/uploads", express.static(path.join(__dirname, "..", uploads)));
 const MicrosoftStrategy = require("passport-microsoft").Strategy;
 
 passport.use(
@@ -147,7 +162,7 @@ io.on("connection", (socket) => {
       callback({ error: "Failed to send message" });
     }
   });
-  
+
   socket.on("message_delivered", async ({ messageId, room }) => {
     try {
       await db.query("UPDATE messages SET status = 'delivered' WHERE id = ?", [
@@ -175,7 +190,6 @@ io.on("connection", (socket) => {
     const receiverSockets = onlineUsers.get(targetUserId);
 
     if (receiverSockets && receiverSockets.size > 0) {
-   
       const callId = `${callerId}_${targetUserId}_${Date.now()}`;
       activeCalls.set(callId, {
         callerId,
