@@ -13,7 +13,7 @@ import axios from "axios";
 import { VideoCall } from "../VideoCall/VideoCall";
 import CallModal from "../CallModel/CallModal";
 
-const socket = io("http://localhost:2000", {
+const socket = io("https://chat-application-4-s157.onrender.com", {
   autoConnect: false,
 });
 
@@ -95,7 +95,7 @@ const ChatWindow = React.memo(
         setIsLoading(true);
         try {
           const response = await axios.get(
-            `http://localhost:2000/api/chat/${currentUser.id}/${receiver.id}`
+            `https://chat-application-4-s157.onrender.com/api/chat/${currentUser.id}/${receiver.id}`
           );
           const data = response.data;
           setMessages(Array.isArray(data) ? data : []);

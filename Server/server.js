@@ -5,8 +5,9 @@ const socketIo = require("socket.io");
 require("dotenv").config();
 const userRoutes = require("./routes/userRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const { Pool } = require("pg");
 const chatController = require("./controllers/chatController");
-const db = require("./config/db");
+// const db = require("./config/db");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
@@ -17,7 +18,7 @@ const server = http.createServer(app);
 
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173", "https://your-frontend-app.vercel.app"],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -42,6 +43,56 @@ app.use(
   })
 );
 
+// PostgreSQL connection for Render
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+// Test database connection
+const initDatabase = async () => {
+  try {
+    console.log("Attempting to connect to PostgreSQL...");
+    console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
+
+    const client = await pool.connect();
+    console.log("Successfully connected to PostgreSQL on Render");
+
+    // Create tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        profile_image VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        senderId INTEGER NOT NULL,
+        receiverId INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        room VARCHAR(255) NOT NULL,
+        status VARCHAR(50) DEFAULT 'sent',
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        senderName VARCHAR(100),
+        tempId BIGINT
+      )
+    `);
+
+    client.release();
+    console.log("✅ Database tables ready");
+  } catch (err) {
+    console.error("❌ Database initialization error:", err.message);
+  }
+};
+
+// Initialize database
+initDatabase();
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "your_production_secret_key",
@@ -75,19 +126,21 @@ passport.use(
         const email = profile.emails?.[0]?.value;
         const name = profile.displayName;
         const profileImage = profile.photoURL;
-        const [rows] = await db.query("SELECT * FROM users WHERE email = ?", [
-          email,
-        ]);
+
+        const result = await pool.query(
+          "SELECT * FROM users WHERE email = $1",
+          [email]
+        );
         let user;
 
-        if (rows.length > 0) {
-          user = rows[0];
+        if (result.rows.length > 0) {
+          user = result.rows[0];
         } else {
-          const [result] = await db.query(
-            "INSERT INTO users (name, email,password, profile_image) VALUES (?, ?, ?, ?)",
+          const insertResult = await pool.query(
+            "INSERT INTO users (name, email, password, profile_image) VALUES ($1, $2, $3, $4) RETURNING *",
             [name, email, "Signin with microsoft", profileImage]
           );
-          user = { id: result.insertId, name, email };
+          user = insertResult.rows[0];
         }
 
         done(null, user);
@@ -144,8 +197,8 @@ io.on("connection", (socket) => {
       // Find receiver's sockets
       const receiverSockets = onlineUsers.get(Number(data.receiverId));
       if (receiverSockets && receiverSockets.size > 0) {
-        await db.query(
-          "UPDATE messages SET status = 'delivered' WHERE id = ?",
+        await pool.query(
+          "UPDATE messages SET status = 'delivered' WHERE id = $1",
           [savedMessage.id]
         );
         savedMessage.status = "delivered";
@@ -164,9 +217,10 @@ io.on("connection", (socket) => {
 
   socket.on("message_delivered", async ({ messageId, room }) => {
     try {
-      await db.query("UPDATE messages SET status = 'delivered' WHERE id = ?", [
-        messageId,
-      ]);
+      await pool.query(
+        "UPDATE messages SET status = 'delivered' WHERE id = $1",
+        [messageId]
+      );
       io.to(room).emit("message_delivered", messageId);
     } catch (err) {
       console.error("Delivered update failed:", err);
@@ -176,7 +230,7 @@ io.on("connection", (socket) => {
   // Message read
   socket.on("message_read", async ({ messageId, room }) => {
     try {
-      await db.query("UPDATE messages SET status = 'read' WHERE id = ?", [
+      await pool.query("UPDATE messages SET status = 'read' WHERE id = $1", [
         messageId,
       ]);
       io.to(room).emit("message_read", messageId);

@@ -1,18 +1,22 @@
-const mysql = require("mysql2");
-require("dotenv").config();
+const { Pool } = require("pg");
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+// Use Render's PostgreSQL database
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
-pool.getConnection((err, connection) => {
-  if (err) {
-    console.error("Database connection failed:", err);
-  } else {
-    console.log("Database connected successfully!");
-    connection.release();
-  }
+
+pool.on("connect", () => {
+  console.log("Connected to Render PostgreSQL database");
 });
-module.exports = pool.promise();
+
+pool.on("error", (err) => {
+  console.error("PostgreSQL connection error:", err);
+});
+
+console.log("Database config loaded - Using PostgreSQL with Render");
+
+module.exports = pool;

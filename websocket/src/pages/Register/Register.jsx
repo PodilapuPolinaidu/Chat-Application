@@ -57,7 +57,10 @@ export default function Register() {
 
   async function sendForm(obj) {
     try {
-      await axios.post("http://localhost:2000/api/users/register", obj);
+      await axios.post(
+        "https://chat-application-4-s157.onrender.com/api/users/register",
+        obj
+      );
       Swal.fire({
         title: "Success!",
         text: "Chat account created successfully",
@@ -237,7 +240,7 @@ export default function Register() {
                     className="oauth-btn microsoft-btn"
                     onClick={() => {
                       window.location.href =
-                        "http://localhost:2000/api/users/auth/microsoft";
+                        "https://chat-application-4-s157.onrender.com/api/users/auth/microsoft";
                     }}
                   >
                     <i
