@@ -27,24 +27,17 @@ const Login = () => {
         "https://chat-application-5-qgda.onrender.com/api/users/login",
         { email, password },
         {
-          withCredentials: true, // ✅ Important for cookies
+          withCredentials: true,
           headers: {
             "Content-Type": "application/json",
           },
         }
       );
 
-      // console.log("Login response headers:", res.headers);
-      // console.log("Login response data:", res.data);
-      // setTimeout(() => {
-      //   console.log("Cookies after login request:", document.cookie);
-      // }, 100);
+      // localStorage.setItem("userToken", res.data.token);
+      // localStorage.setItem("userId", res.data.user.id.toString());
+      // localStorage.setItem("userData", JSON.stringify(res.data.user));
 
-      localStorage.setItem("userToken", res.data.token);
-      localStorage.setItem("userId", res.data.user.id.toString());
-      localStorage.setItem("userData", JSON.stringify(res.data.user));
-
-      // ✅ Also set cookies manually
       const isProduction = window.location.protocol === "https:";
       const sameSite = isProduction ? "None" : "Lax";
       const secure = isProduction ? "Secure; " : "";
@@ -52,8 +45,6 @@ const Login = () => {
       document.cookie = `token=${res.data.token}; path=/; max-age=3600; SameSite=${sameSite}; ${secure}`;
       document.cookie = `id=${res.data.user.id}; path=/; max-age=3600; SameSite=${sameSite}; ${secure}`;
       document.cookie = `email=${res.data.user.email}; path=/; max-age=3600; SameSite=${sameSite}; ${secure}`;
-
-      console.log("Cookies set manually:", document.cookie);
       Swal.fire({
         title: "Welcome 🎉",
         text: res.data.msg,

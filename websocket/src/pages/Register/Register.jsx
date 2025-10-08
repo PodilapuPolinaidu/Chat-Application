@@ -73,7 +73,7 @@ export default function Register() {
         cancelButtonText: "Stay Here",
       }).then((result) => {
         if (result.isConfirmed) {
-          navigateTo("/login")
+          navigateTo("/login");
         } else {
           setFormData({ name: "", email: "", password: "", image: null });
           setErrors({});
@@ -90,6 +90,20 @@ export default function Register() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function handleMicrosoftLogin() {
+    const res = await axios.get(
+      "https://chat-application-5-qgda.onrender.com/api/users/auth/microsoft"
+    );
+    console.log(res);
+    const isProduction = window.location.protocol === "https:";
+    const sameSite = isProduction ? "None" : "Lax";
+    const secure = isProduction ? "Secure; " : "";
+
+    document.cookie = `token=${res.data.token}; path=/; max-age=3600; SameSite=${sameSite}; ${secure}`;
+    document.cookie = `id=${res.data.user.id}; path=/; max-age=3600; SameSite=${sameSite}; ${secure}`;
+    document.cookie = `email=${res.data.user.email}; path=/; max-age=3600; SameSite=${sameSite}; ${secure}`;
   }
 
   return (
@@ -239,10 +253,7 @@ export default function Register() {
                   </button>
                   <button
                     className="oauth-btn microsoft-btn"
-                    onClick={() => {
-                      window.location.href =
-                        "https://chat-application-5-qgda.onrender.com/api/users/auth/microsoft";
-                    }}
+                    onClick={handleMicrosoftLogin}
                   >
                     <i
                       className="bi bi-microsoft"

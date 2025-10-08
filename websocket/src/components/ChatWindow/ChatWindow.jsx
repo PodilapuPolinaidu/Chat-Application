@@ -19,7 +19,6 @@ const socket = io("https://chat-application-5-qgda.onrender.com", {
 
 const ChatWindow = React.memo(
   ({ currentUser, receiver, setStatus }) => {
-   
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState([]);
@@ -93,7 +92,7 @@ const ChatWindow = React.memo(
         setIsLoading(true);
         try {
           const response = await axios.get(
-            `https://chat-application-5-qgda.onrender.com/${currentUser.id}/${receiver.id}`
+            `https://chat-application-5-qgda.onrender.com/api/chat/${currentUser.id}/${receiver.id}`
           );
           const data = response.data;
           setMessages(Array.isArray(data) ? data : []);

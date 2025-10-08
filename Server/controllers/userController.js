@@ -43,25 +43,6 @@ const loginUser = async (req, res) => {
       expiresIn: "5h",
     });
 
-    // ✅ PRODUCTION-READY COOKIE CONFIG
-    const isProduction = process.env.NODE_ENV === "production";
-    const frontendDomain = isProduction
-      ? "chat-application-alpha-navy.vercel.app"
-      : "localhost";
-
-    const cookieOptions = {
-      httpOnly: false, // Allow JavaScript access
-      secure: isProduction, // true for HTTPS in production
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: isProduction ? "none" : "lax", // 'none' for cross-site
-      path: "/",
-      // domain: isProduction ? '.vercel.app' : undefined // Comment out for now
-    };
-
-    res.cookie("token", token, cookieOptions);
-    res.cookie("id", user.id.toString(), cookieOptions);
-    res.cookie("email", user.email, cookieOptions); // Use lowercase consistently
-
     res.json({
       msg: "Login successful",
       token,

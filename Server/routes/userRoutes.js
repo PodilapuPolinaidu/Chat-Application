@@ -33,8 +33,7 @@ router.get(
 router.get(
   "/auth/microsoft/callback",
   passport.authenticate("microsoft", {
-    failureRedirect:
-      "https://chat-application-alpha-navy.vercel.app",
+    failureRedirect: "https://chat-application-alpha-navy.vercel.app",
     session: false,
   }),
   (req, res) => {
@@ -45,9 +44,15 @@ router.get(
       { expiresIn: "1h" }
     );
 
-    res.redirect(
-      `https://chat-application-alpha-navy.vercel.app/home?token=${token}&id=${user.id}&email=${user.email}`
-    );
+    res.json({
+      success: true,
+      token: token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    });
   }
 );
 router.get("/", getUsers);
