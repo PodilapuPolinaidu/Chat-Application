@@ -8,7 +8,7 @@ const {
   registerUser,
   loginUser,
   getUsers,
-  // SignInUser,
+  // SignInUser
 } = require("../controllers/userController");
 const passport = require("passport");
 

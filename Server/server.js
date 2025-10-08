@@ -201,10 +201,17 @@ io.on("connection", (socket) => {
   // Handle sending messages
   socket.on("send_message", async (data, callback) => {
     try {
-      const savedMessage = await chatController.saveMessageForSocket(data);
+      console.log("📨 [SOCKET] Received send_message:", data);
 
-      // Find receiver's sockets
+      const savedMessage = await chatController.saveMessageForSocket(data);
+      console.log("✅ [SOCKET] Message saved successfully:", savedMessage);
+
       const receiverSockets = onlineUsers.get(Number(data.receiverId));
+      console.log(
+        "🔍 [SOCKET] Receiver sockets:",
+        receiverSockets ? Array.from(receiverSockets) : "No sockets found"
+      );
+
       if (receiverSockets && receiverSockets.size > 0) {
         await pool.query(
           "UPDATE messages SET status = 'delivered' WHERE id = $1",
@@ -213,14 +220,19 @@ io.on("connection", (socket) => {
         savedMessage.status = "delivered";
 
         for (const rSockId of receiverSockets) {
+          console.log("📤 [SOCKET] Sending to receiver socket:", rSockId);
           io.to(rSockId).emit("receive_message", savedMessage);
         }
       }
 
+      console.log("✅ [SOCKET] Sending success callback");
       callback(savedMessage);
     } catch (err) {
-      console.error("Error in send_message:", err);
-      callback({ error: "Failed to send message" });
+      console.error("❌ [SOCKET] Error in send_message:");
+      console.error("   - Error:", err.message);
+      console.error("   - Data:", data);
+
+      callback({ error: "Failed to send message", details: err.message });
     }
   });
 
@@ -436,27 +448,7 @@ app.use((err, req, res, next) => {
   console.error("Server error:", err);
   res.status(500).json({ error: "Internal server error" });
 });
-app.get("/api/test", (req, res) => {
-  res.json({
-    message: "Backend API is working!",
-    timestamp: new Date().toISOString(),
-    routes: [
-      "/api/users/register",
-      "/api/users/login",
-      "/api/users/auth/microsoft",
-    ],
-  });
-});
 
-// Test if users routes are working
-app.get("/api/users/test", (req, res) => {
-  res.json({ message: "Users API route is working!" });
-});
-
-// Test login endpoint directly
-app.post("/api/users/login-test", (req, res) => {
-  res.json({ message: "Login endpoint is reachable!", body: req.body });
-});
 const PORT = process.env.PORT || 2000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -6,7 +6,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
     isRinging: false,
     isIncomingCall: false,
     isOnCall: false,
-    callType: null, 
+    callType: null,
     callerInfo: null,
     callId: null,
   });
@@ -19,16 +19,31 @@ export const VideoCall = (socket, currentUser, receiver) => {
 
   // Cleanup function
   const cleanupCall = useCallback(() => {
+    console.log("🧹 Cleaning up call...");
+
+    // Stop all media tracks
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
       localStreamRef.current = null;
     }
 
+    // Clear video elements
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+
+    // Close peer connection
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
 
+    // Clear timers
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
       callTimerRef.current = null;
@@ -45,7 +60,14 @@ export const VideoCall = (socket, currentUser, receiver) => {
     });
   }, []);
 
+  // In your VideoCall hook, modify the createPeerConnection function
   const createPeerConnection = useCallback(() => {
+    // Close existing connection if any
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
     const configuration = {
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
@@ -55,12 +77,14 @@ export const VideoCall = (socket, currentUser, receiver) => {
 
     const pc = new RTCPeerConnection(configuration);
 
+    // Add local stream to connection
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current);
       });
     }
 
+    // Handle incoming remote stream
     pc.ontrack = (event) => {
       const remoteStream = event.streams[0];
       if (remoteVideoRef.current) {
@@ -68,52 +92,76 @@ export const VideoCall = (socket, currentUser, receiver) => {
       }
     };
 
-    pc.onicecandidate = (event) => {
-      if (event.candidate && callState.callId) {
-        socket.emit("iceCandidate", {
-          target: callState.callerInfo?.callerId || receiver.id,
-          candidate: event.candidate,
-          callId: callState.callId,
-        });
+    // ICE candidate handling
+    // Add this to your createPeerConnection function
+    pc.onconnectionstatechange = () => {
+      console.log("🔄 PeerConnection state:", pc.connectionState);
+      if (pc.connectionState === "connected") {
+        console.log("✅ PeerConnection connected successfully!");
+      } else if (pc.connectionState === "failed") {
+        console.log("❌ PeerConnection failed");
+        // Attempt to restart
+        setTimeout(() => {
+          if (pc.connectionState === "failed") {
+            console.log("🔄 Restarting failed connection...");
+            cleanupCall();
+          }
+        }, 2000);
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log("🧊 ICE connection state:", pc.iceConnectionState);
+    };
+
+    pc.onsignalingstatechange = () => {
+      console.log("📶 Signaling state:", pc.signalingState);
+    };
+
+    pc.onnegotiationneeded = () => {
+      console.log("Negotiation needed");
+    };
+
     return pc;
-  }, [socket, receiver, callState]);
+  }, [cleanupCall]);
 
-  const startCall = useCallback(
-    async (callType = "video") => {
-      if (!receiver?.id || !currentUser?.id) return;
+  // In your startCall and acceptCall functions, make sure to remove existing tracks
+  const startCall = async (callType = "video") => {
+    try {
+      // Clean up any existing call first
+      cleanupCall();
 
-      try {
-        setCallState((prev) => ({
-          ...prev,
-          isCalling: true,
-          callType,
-        }));
+      setCallState((prev) => ({
+        ...prev,
+        isCalling: true,
+        callType,
+      }));
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: callType === "video",
-          audio: true,
-        });
-        localStreamRef.current = stream;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
+      // Get user media
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: callType === "video",
+        audio: true,
+      });
 
-        socket.emit("callUser", {
-          targetUserId: receiver.id,
-          from: currentUser.name,
-          callerId: currentUser.id,
-          callType,
-        });
-      } catch (error) {
-        console.error("Error starting call:", error);
-        cleanupCall();
+      localStreamRef.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
       }
-    },
-    [currentUser, receiver, socket, cleanupCall]
-  );
+
+      // Create new peer connection
+      peerConnectionRef.current = createPeerConnection();
+
+      socket.emit("callUser", {
+        targetUserId: receiver.id,
+        from: currentUser.name,
+        callerId: currentUser.id,
+        callType,
+      });
+    } catch (error) {
+      console.error("❌ Error starting call:", error);
+      cleanupCall();
+    }
+  };
 
   const acceptCall = useCallback(async () => {
     if (!callState.isIncomingCall || !callState.callerInfo) return;
@@ -236,31 +284,67 @@ export const VideoCall = (socket, currentUser, receiver) => {
       cleanupCall();
     };
 
+    // In your useEffect socket handlers, update these:
+
     const handleWebRTCOffer = async ({ sdp, from, callId }) => {
-      if (!peerConnectionRef.current) return;
+      console.log("🔍 [WebRTC] Received offer from:", from);
+
+      if (!peerConnectionRef.current) {
+        console.log("🔄 [WebRTC] Creating new peer connection for offer");
+        peerConnectionRef.current = createPeerConnection();
+      }
 
       try {
-        await peerConnectionRef.current.setRemoteDescription(sdp);
+        // Reset any existing streams
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = null;
+        }
+
+        const offer = new RTCSessionDescription(sdp);
+        console.log("📝 [WebRTC] Setting remote description...");
+
+        await peerConnectionRef.current.setRemoteDescription(offer);
+        console.log("✅ [WebRTC] Remote description set successfully");
+
+        console.log("📝 [WebRTC] Creating answer...");
         const answer = await peerConnectionRef.current.createAnswer();
         await peerConnectionRef.current.setLocalDescription(answer);
+        console.log("✅ [WebRTC] Local description set");
 
         socket.emit("webrtcAnswer", {
           target: from,
-          sdp: answer,
+          sdp: peerConnectionRef.current.localDescription,
           callId,
         });
+        console.log("📤 [WebRTC] Answer sent back");
       } catch (error) {
-        console.error("Error handling offer:", error);
+        console.error("❌ [WebRTC] Error in handleWebRTCOffer:", error);
+
+        // Clean up and restart on error
+        if (peerConnectionRef.current) {
+          peerConnectionRef.current.close();
+          peerConnectionRef.current = null;
+        }
+
+        // Create fresh connection
+        peerConnectionRef.current = createPeerConnection();
       }
     };
 
     const handleWebRTCAnswer = async ({ sdp }) => {
-      if (!peerConnectionRef.current) return;
+      if (!peerConnectionRef.current) {
+        console.log("❌ No peer connection for answer");
+        return;
+      }
 
       try {
-        await peerConnectionRef.current.setRemoteDescription(sdp);
+        console.log("📨 Handling WebRTC answer...");
+
+        const answer = new RTCSessionDescription(sdp);
+        await peerConnectionRef.current.setRemoteDescription(answer);
+        console.log("✅ Remote answer set");
       } catch (error) {
-        console.error("Error handling answer:", error);
+        console.error("❌ Error handling answer:", error);
       }
     };
 

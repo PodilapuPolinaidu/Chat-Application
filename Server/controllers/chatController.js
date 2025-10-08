@@ -1,72 +1,92 @@
-const pool = require("../config/db"); // Import PostgreSQL pool
+const pool = require("../config/db");
 
 const chatController = {
-  async getMessages(req, res) {
-    try {
-      const { senderId, receiverId } = req.params;
-      // CHANGE TO PostgreSQL syntax:
-      const result = await pool.query(
-        `SELECT m.id, m.senderId, m.receiverId,
-         m.content, m.timestamp, m.status,
-         u1.name AS senderName
-         FROM messages m
-         JOIN users u1 ON m.senderId = u1.id
-         WHERE (m.senderId = $1 AND m.receiverId = $2)
-         OR (m.senderId = $3 AND m.receiverId = $4)
-         ORDER BY m.timestamp ASC`,
-        [
-          Number(senderId),
-          Number(receiverId),
-          Number(receiverId),
-          Number(senderId),
-        ]
-      );
-      res.json(result.rows);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  },
-
-  async saveMessage(req, res) {
-    try {
-      const { senderId, receiverId, content } = req.body;
-      // CHANGE TO PostgreSQL syntax:
-      const result = await pool.query(
-        "INSERT INTO messages (senderId, receiverId, content, status, senderName) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [senderId, receiverId, content, "sent", req.body.senderName]
-      );
-      res.json(result.rows[0]);
-    } catch (error) {
-      console.error("Error saving message:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  },
-
   async saveMessageForSocket(messageData) {
     try {
-      const { senderId, receiverId, content, senderName } = messageData;
-      console.log(senderName);
-      // CHANGE TO PostgreSQL syntax:
-      const result = await pool.query(
-        "INSERT INTO messages (senderId, receiverId, content, status, senderName) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [senderId, receiverId, content, "sent", senderName]
+      console.log("💾 [SAVE MESSAGE] Starting to save message:", messageData);
+
+      const { senderId, receiverId, content, senderName, room } = messageData;
+
+      // Validate required fields
+      if (!senderId || !receiverId || !content) {
+        console.error("❌ [SAVE MESSAGE] Missing required fields:", {
+          senderId,
+          receiverId,
+          content,
+        });
+        throw new Error("Missing required fields");
+      }
+
+      console.log("🔍 [SAVE MESSAGE] Attempting database insert...");
+
+      // ✅ PostgreSQL syntax with RETURNING
+      const insertQuery = `
+        INSERT INTO messages (senderId, receiverId, content, status, senderName, room) 
+        VALUES ($1, $2, $3, $4, $5, $6) 
+        RETURNING *
+      `;
+      const insertValues = [
+        senderId,
+        receiverId,
+        content,
+        "sent",
+        senderName,
+        room,
+      ];
+
+      console.log("📝 [SAVE MESSAGE] Executing query:", insertQuery);
+      console.log("📝 [SAVE MESSAGE] With values:", insertValues);
+
+      const result = await pool.query(insertQuery, insertValues);
+      console.log(
+        "✅ [SAVE MESSAGE] Insert successful, result:",
+        result.rows[0]
       );
 
       // Get the complete message with sender name
-      const messageResult = await pool.query(
-        `SELECT m.id, m.senderId, m.receiverId,
-                m.content, m.timestamp, m.status,
-                u1.name AS senderName
-         FROM messages m
-         JOIN users u1 ON m.senderId = u1.id
-         WHERE m.id = $1`,
-        [result.rows[0].id]
-      );
+      const selectQuery = `
+        SELECT m.id, m.senderId, m.receiverId,
+               m.content, m.timestamp, m.status,
+               u1.name AS senderName
+        FROM messages m
+        JOIN users u1 ON m.senderId = u1.id
+        WHERE m.id = $1
+      `;
 
+      console.log("🔍 [SAVE MESSAGE] Fetching complete message...");
+      const messageResult = await pool.query(selectQuery, [result.rows[0].id]);
+
+      if (messageResult.rows.length === 0) {
+        console.error("❌ [SAVE MESSAGE] Message not found after insert!");
+        throw new Error("Message not found after insert");
+      }
+
+      console.log(
+        "✅ [SAVE MESSAGE] Complete message fetched:",
+        messageResult.rows[0]
+      );
       return messageResult.rows[0];
     } catch (error) {
-      console.error("Error saving message:", error);
+      console.error("[SAVE MESSAGE] ERROR DETAILS:");
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      console.error("Error code:", error.code);
+      console.error("Received data:", messageData);
+
+      // Check for specific PostgreSQL errors
+      if (error.code === "23503") {
+        // Foreign key violation
+        console.error(
+          "FOREIGN KEY VIOLATION: User ID doesn't exist in users table"
+        );
+      } else if (error.code === "23502") {
+        // Not null violation
+        console.error("NOT NULL VIOLATION: Missing required field");
+      } else if (error.code === "42P01") {
+        // Table doesn't exist
+        console.error("TABLE DOESN'T EXIST: messages table missing");
+      }
+
       throw error;
     }
   },
