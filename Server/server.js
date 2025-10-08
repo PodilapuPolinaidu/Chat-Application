@@ -18,13 +18,23 @@ const PostgreSQLStore = require("connect-pg-simple")(session);
 
 const io = socketIo(server, {
   cors: {
-    origin: ["https://chat-application-alpha-navy.vercel.app", "https://chat-application-qarpuogfs-polinaidus-projects.vercel.app"],
+    origin: [
+      "https://chat-application-alpha-navy.vercel.app",
+      "https://chat-application-qarpuogfs-polinaidus-projects.vercel.app",
+      "https://chat-application-8ao7682xq-polinaidus-projects.vercel.app/",
+      "https://chat-application-8ao7682xq-polinaidus-projects.vercel.app",
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 app.use(cookieParser());
-const allowedOrigins = ["https://chat-application-alpha-navy.vercel.app", "https://chat-application-qarpuogfs-polinaidus-projects.vercel.app"];
+const allowedOrigins = [
+  "https://chat-application-alpha-navy.vercel.app",
+  "https://chat-application-qarpuogfs-polinaidus-projects.vercel.app",
+  "https://chat-application-8ao7682xq-polinaidus-projects.vercel.app/",
+  "https://chat-application-8ao7682xq-polinaidus-projects.vercel.app",
+];
 
 app.use(
   cors({
@@ -425,7 +435,6 @@ io.on("connection", (socket) => {
     console.log("Current online users:", onlineUserIds);
   });
 });
-
 
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
