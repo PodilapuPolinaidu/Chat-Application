@@ -214,7 +214,7 @@ export default function Register() {
                 <div className="login-redirect">
                   <p>
                     Already have an account?{" "}
-                    <a href="https://chat-application-5-qgda.onrender.com/api/users/login">
+                    <a href="/login">
                       <i className="bi bi-box-arrow-in-right"></i> Login here
                     </a>
                   </p>
