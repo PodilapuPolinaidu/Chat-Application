@@ -1,6 +1,5 @@
 import React from "react";
 import "./profile.css";
-// import ""
 const Profile = ({ user }) => {
 
   return (
@@ -14,7 +13,6 @@ const Profile = ({ user }) => {
         </div>
       </div>
 
-      {/* Profile Image Section */}
       <div className="profile-image-section">
         <div className="profile-image-container">
           <img
@@ -30,7 +28,6 @@ const Profile = ({ user }) => {
         </div>
       </div>
 
-      {/* Profile Info */}
       <div className="profile-info">
         <div className="info-item">
           <div className="info-content">
@@ -65,13 +62,11 @@ const Profile = ({ user }) => {
           <div className="info-content">
             <div className="info-text">
               <label className="info-label">Last seen</label>
-              {/* <p className="info-value">{user.lastSeen}</p> */}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="profile-actions">
         <button className="btn-action">
           <i className="bi bi-share"></i>

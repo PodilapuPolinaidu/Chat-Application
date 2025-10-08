@@ -6,7 +6,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
     isRinging: false,
     isIncomingCall: false,
     isOnCall: false,
-    callType: null, // 'video' or 'audio'
+    callType: null, 
     callerInfo: null,
     callId: null,
   });
@@ -45,7 +45,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
     });
   }, []);
 
-  // Initialize peer connection
   const createPeerConnection = useCallback(() => {
     const configuration = {
       iceServers: [
@@ -56,14 +55,12 @@ export const VideoCall = (socket, currentUser, receiver) => {
 
     const pc = new RTCPeerConnection(configuration);
 
-    // Add local stream to connection
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current);
       });
     }
 
-    // Handle incoming remote stream
     pc.ontrack = (event) => {
       const remoteStream = event.streams[0];
       if (remoteVideoRef.current) {
@@ -71,7 +68,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
       }
     };
 
-    // ICE candidate handling
     pc.onicecandidate = (event) => {
       if (event.candidate && callState.callId) {
         socket.emit("iceCandidate", {
@@ -85,7 +81,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
     return pc;
   }, [socket, receiver, callState]);
 
-  // Start a call
   const startCall = useCallback(
     async (callType = "video") => {
       if (!receiver?.id || !currentUser?.id) return;
@@ -97,7 +92,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
           callType,
         }));
 
-        // Get user media
         const stream = await navigator.mediaDevices.getUserMedia({
           video: callType === "video",
           audio: true,
@@ -121,7 +115,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
     [currentUser, receiver, socket, cleanupCall]
   );
 
-  // Accept incoming call
   const acceptCall = useCallback(async () => {
     if (!callState.isIncomingCall || !callState.callerInfo) return;
 
@@ -133,7 +126,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
         isRinging: false,
       }));
 
-      // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
         video: callState.callType === "video",
         audio: true,
@@ -165,7 +157,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
     }
   }, [callState, socket, createPeerConnection, cleanupCall]);
 
-  // Reject call
   const rejectCall = useCallback(() => {
     if (callState.isIncomingCall && callState.callerInfo) {
       socket.emit("rejectCall", {
@@ -176,7 +167,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
     cleanupCall();
   }, [callState, socket, cleanupCall]);
 
-  // End call
   const endCall = useCallback(() => {
     if (callState.callId && receiver?.id) {
       socket.emit("endCall", {
@@ -187,7 +177,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
     cleanupCall();
   }, [callState, receiver, socket, cleanupCall]);
 
-  // Socket event handlers
   useEffect(() => {
     const handleCallInitiated = ({ callId }) => {
       setCallState((prev) => ({
@@ -217,7 +206,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
         callId,
       }));
 
-      // Start WebRTC offer process
       setTimeout(async () => {
         try {
           peerConnectionRef.current = createPeerConnection();
@@ -236,18 +224,15 @@ export const VideoCall = (socket, currentUser, receiver) => {
       }, 1000);
     };
 
-    const handleCallRejected = ({ reason }) => {
-      console.log("Call rejected:", reason);
+    const handleCallRejected = () => {
       cleanupCall();
     };
 
     const handleCallCanceled = () => {
-      console.log("Call canceled by caller");
       cleanupCall();
     };
 
     const handleCallEnded = () => {
-      console.log("Call ended by other party");
       cleanupCall();
     };
 

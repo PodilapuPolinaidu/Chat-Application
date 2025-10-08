@@ -19,7 +19,7 @@ const socket = io("https://chat-application-5-qgda.onrender.com", {
 
 const ChatWindow = React.memo(
   ({ currentUser, receiver, setStatus }) => {
-    // State
+   
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState([]);
@@ -82,12 +82,10 @@ const ChatWindow = React.memo(
       [currentUser, receiver, room]
     );
 
-    // Scroll to bottom
     const scrollToBottom = useCallback(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, []);
 
-    // Effects
     useEffect(() => {
       if (!room) return;
 
@@ -185,7 +183,6 @@ const ChatWindow = React.memo(
       }
     }, [messages, scrollToBottom]);
 
-    // Message status effects
     useEffect(() => {
       const handleMessageDelivered = (messageId) => {
         setMessages((prev) =>
@@ -221,7 +218,6 @@ const ChatWindow = React.memo(
       };
     }, [room]);
 
-    // Early return if no receiver
     if (!receiver || !currentUser) {
       return (
         <div className="chat-window-container">
