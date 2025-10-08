@@ -95,7 +95,7 @@ const ChatWindow = React.memo(
         setIsLoading(true);
         try {
           const response = await axios.get(
-            `https://chat-application-5-qgda.onrender.com/api/chat/${currentUser.id}/${receiver.id}`
+            `${import.meta.env.VITE_API_URL}/${currentUser.id}/${receiver.id}`
           );
           const data = response.data;
           setMessages(Array.isArray(data) ? data : []);
