@@ -239,9 +239,8 @@ export default function Register() {
                   <button
                     className="oauth-btn microsoft-btn"
                     onClick={() => {
-                      window.location.href = `${
-                        import.meta.env.VITE_API_URL
-                      }/api/users/auth/microsoft`;
+                      window.location.href =
+                        "https://chat-application-5-qgda.onrender.com/api/users/auth/microsoft";
                     }}
                   >
                     <i
