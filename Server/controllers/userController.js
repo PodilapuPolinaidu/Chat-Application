@@ -33,8 +33,9 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(req.body);
     const user = await userModel.findUserByEmail(email);
-
+    console.log(user);
     if (!user) return res.status(404).json({ msg: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -50,7 +51,7 @@ const loginUser = async (req, res) => {
       sameSite: "lax",
       path: "/",
     };
-
+    console.log(token);
     res.cookie("token", token, cookieOptions);
 
     res.cookie("id", user.id, cookieOptions);

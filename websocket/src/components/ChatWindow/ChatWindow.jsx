@@ -12,8 +12,8 @@ import "./chatWindow.css";
 import axios from "axios";
 import { VideoCall } from "../VideoCall/VideoCall";
 import CallModal from "../CallModel/CallModal";
-
-const socket = io("https://chat-application-5-qgda.onrender.com", {
+const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:2000";
+const socket = io(socketUrl, {
   autoConnect: false,
 });
 

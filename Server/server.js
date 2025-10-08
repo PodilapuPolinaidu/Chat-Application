@@ -18,19 +18,13 @@ const PostgreSQLStore = require("connect-pg-simple")(session);
 
 const io = socketIo(server, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "https://chat-application-4i20q6geo-polinaidus-projects.vercel.app",
-    ],
+    origin: ["http://localhost:5173"],
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 app.use(cookieParser());
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://chat-application-4i20q6geo-polinaidus-projects.vercel.app", 
-];
+const allowedOrigins = ["http://localhost:5173"];
 
 app.use(
   cors({
