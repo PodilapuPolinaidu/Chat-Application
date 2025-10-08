@@ -27,6 +27,7 @@ const Login = () => {
         { email, password },
         { withCredentials: true }
       );
+      console.log(res);
       Swal.fire({
         title: "Welcome 🎉",
         text: res.data.msg,
