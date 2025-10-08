@@ -28,6 +28,8 @@ const Login = () => {
         { email, password },
         { withCredentials: true }
       );
+
+      console.log(document.cookie);
       Swal.fire({
         title: "Welcome 🎉",
         text: res.data.msg,
