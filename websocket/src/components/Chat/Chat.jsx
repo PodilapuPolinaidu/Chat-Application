@@ -18,6 +18,7 @@ const Chat = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
+    console.log(token);
     const email = params.get("email");
     const userId = params.get("id");
     if (token) {
