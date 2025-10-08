@@ -7,7 +7,6 @@ const userRoutes = require("./routes/userRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const { Pool } = require("pg");
 const chatController = require("./controllers/chatController");
-// const db = require("./config/db");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
@@ -19,7 +18,10 @@ const PostgreSQLStore = require("connect-pg-simple")(session);
 
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:5173", "https://your-frontend-app.vercel.app"],
+    origin: [
+      "http://localhost:5173",
+      "https://chat-application-eg5ehd8r9-polinaidus-projects.vercel.app",
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -27,8 +29,9 @@ const io = socketIo(server, {
 app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://your-frontend-app.vercel.app", // Your actual Vercel frontend URL
+  "https://chat-application-eg5ehd8r9-polinaidus-projects.vercel.app", // Your actual Vercel URL
 ];
+
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -439,7 +442,28 @@ app.use((err, req, res, next) => {
   console.error("Server error:", err);
   res.status(500).json({ error: "Internal server error" });
 });
+// Add these test routes after your other routes
+app.get("/api/test", (req, res) => {
+  res.json({
+    message: "Backend API is working!",
+    timestamp: new Date().toISOString(),
+    routes: [
+      "/api/users/register",
+      "/api/users/login",
+      "/api/users/auth/microsoft",
+    ],
+  });
+});
 
+// Test if users routes are working
+app.get("/api/users/test", (req, res) => {
+  res.json({ message: "Users API route is working!" });
+});
+
+// Test login endpoint directly
+app.post("/api/users/login-test", (req, res) => {
+  res.json({ message: "Login endpoint is reachable!", body: req.body });
+});
 const PORT = process.env.PORT || 2000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

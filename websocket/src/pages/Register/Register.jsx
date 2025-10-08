@@ -72,7 +72,8 @@ export default function Register() {
         cancelButtonText: "Stay Here",
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = "/login";
+          window.location.href =
+            "https://chat-application-5-qgda.onrender.com/login";
         } else {
           setFormData({ name: "", email: "", password: "", image: null });
           setErrors({});
@@ -214,7 +215,7 @@ export default function Register() {
                 <div className="login-redirect">
                   <p>
                     Already have an account?{" "}
-                    <a href="/login">
+                    <a href="https://chat-application-5-qgda.onrender.com/api/users/login">
                       <i className="bi bi-box-arrow-in-right"></i> Login here
                     </a>
                   </p>
