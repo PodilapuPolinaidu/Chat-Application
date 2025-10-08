@@ -104,6 +104,7 @@ export default function Register() {
     document.cookie = `token=${res.data.token}; path=/; max-age=3600; SameSite=${sameSite}; ${secure}`;
     document.cookie = `id=${res.data.user.id}; path=/; max-age=3600; SameSite=${sameSite}; ${secure}`;
     document.cookie = `email=${res.data.user.email}; path=/; max-age=3600; SameSite=${sameSite}; ${secure}`;
+    window.location.href = "/home";
   }
 
   return (
