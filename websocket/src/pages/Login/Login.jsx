@@ -24,7 +24,7 @@ const Login = () => {
     }
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/users/login`,
+        "https://chat-application-5-qgda.onrender.com/api/users/login",
         { email, password },
         { withCredentials: true }
       );
