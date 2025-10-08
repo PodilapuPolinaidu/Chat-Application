@@ -42,25 +42,35 @@ const loginUser = async (req, res) => {
     const token = jwt.sign({ id: user.id, email: user.email }, secretKey, {
       expiresIn: "5h",
     });
+
+    const isProduction = process.env.NODE_ENV === "production";
+
     const cookieOptions = {
-      httpOnly: false,
-      secure: false,
-      maxAge: 3600000000,
-      sameSite: "lax",
+      httpOnly: false, // Allow JavaScript access
+      secure: isProduction, // true in production (HTTPS), false in development
+      maxAge: 3600000000, // 1 hour
+      sameSite: isProduction ? "none" : "lax", // 'none' for cross-site in production
       path: "/",
     };
-    console.log(token);
-    res.cookie("token", token, cookieOptions);
 
-    res.cookie("id", user.id, cookieOptions);
+    res.cookie("token", token, cookieOptions);
+    res.cookie("id", user.id.toString(), cookieOptions);
     res.cookie("Email", user.email, cookieOptions);
-    res.json({ msg: "Login successful", token });
+
+    res.json({
+      msg: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    });
   } catch (err) {
     console.log(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
-
 async function findOrCreateUser(profile) {
   const email = profile._json.preferred_username || profile._json.email;
   let user = await userModel.findUserByEmail(email);

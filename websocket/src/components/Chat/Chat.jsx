@@ -25,10 +25,13 @@ const Chat = () => {
       document.cookie = `email=${email}; path=/`;
       document.cookie = `id=${userId}; path=/`;
     }
-
+    // console.log(userId);
     const getCookieId = () => {
+      console.log(document.cookie);
       const value = `; ${document.cookie}`;
+      // console.log(value);
       const parts = value.split(`; id=`);
+      // console.log(parts);
       if (parts.length === 2) {
         return Number(parts.pop().split(";").shift());
       }
