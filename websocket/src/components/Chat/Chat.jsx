@@ -50,7 +50,7 @@ const Chat = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/users`
+          `https://chat-application-5-qgda.onrender.com/api/users`
         );
         const data = response.data;
 
