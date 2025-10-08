@@ -10,7 +10,8 @@ export const VideoCall = (socket, currentUser, receiver) => {
     callerInfo: null,
     callId: null,
   });
-
+  const pendingCandidatesRef = useRef([]);
+  const remoteDescriptionSetRef = useRef(false);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -295,7 +296,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
       }
 
       try {
-        // Reset any existing streams
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = null;
         }
@@ -304,7 +304,15 @@ export const VideoCall = (socket, currentUser, receiver) => {
         console.log("📝 [WebRTC] Setting remote description...");
 
         await peerConnectionRef.current.setRemoteDescription(offer);
+        remoteDescriptionSetRef.current = true; // ✅ Mark as set
+
         console.log("✅ [WebRTC] Remote description set successfully");
+
+        // 🔄 Add any pending ICE candidates now
+        for (const candidate of pendingCandidatesRef.current) {
+          await peerConnectionRef.current.addIceCandidate(candidate);
+        }
+        pendingCandidatesRef.current = [];
 
         console.log("📝 [WebRTC] Creating answer...");
         const answer = await peerConnectionRef.current.createAnswer();
@@ -319,14 +327,10 @@ export const VideoCall = (socket, currentUser, receiver) => {
         console.log("📤 [WebRTC] Answer sent back");
       } catch (error) {
         console.error("❌ [WebRTC] Error in handleWebRTCOffer:", error);
-
-        // Clean up and restart on error
         if (peerConnectionRef.current) {
           peerConnectionRef.current.close();
           peerConnectionRef.current = null;
         }
-
-        // Create fresh connection
         peerConnectionRef.current = createPeerConnection();
       }
     };
@@ -342,6 +346,14 @@ export const VideoCall = (socket, currentUser, receiver) => {
 
         const answer = new RTCSessionDescription(sdp);
         await peerConnectionRef.current.setRemoteDescription(answer);
+        remoteDescriptionSetRef.current = true; // ✅ Mark as set
+
+        // 🔄 Add pending ICE candidates
+        for (const candidate of pendingCandidatesRef.current) {
+          await peerConnectionRef.current.addIceCandidate(candidate);
+        }
+        pendingCandidatesRef.current = [];
+
         console.log("✅ Remote answer set");
       } catch (error) {
         console.error("❌ Error handling answer:", error);
@@ -352,7 +364,17 @@ export const VideoCall = (socket, currentUser, receiver) => {
       if (!peerConnectionRef.current) return;
 
       try {
-        await peerConnectionRef.current.addIceCandidate(candidate);
+        if (remoteDescriptionSetRef.current) {
+          // Remote description ready → add candidate immediately
+          await peerConnectionRef.current.addIceCandidate(candidate);
+          console.log("🧊 ICE candidate added");
+        } else {
+          // Otherwise, queue it for later
+          console.log(
+            "⏳ Queuing ICE candidate (remote description not ready)"
+          );
+          pendingCandidatesRef.current.push(candidate);
+        }
       } catch (error) {
         console.error("Error adding ICE candidate:", error);
       }
