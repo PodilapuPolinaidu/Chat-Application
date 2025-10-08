@@ -3,12 +3,13 @@ import "./login.css";
 import axios from "axios";
 import Swal from "sweetalert2";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState({ email: "", password: "", server: "" });
-
+  const navigateTo = useNavigate();
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -36,8 +37,7 @@ const Login = () => {
         confirmButtonText: "Enter Chat",
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href =
-            "https://chat-application-alpha-navy.vercel.app/home";
+          navigateTo("/home");
         }
       });
 
@@ -140,9 +140,12 @@ const Login = () => {
             )}
 
             <div className="extra-links">
-              <a style={{ textDecoration: "none" }} href="/">
+              <span
+                style={{ textDecoration: "none" }}
+                onClick={() => navigateTo("/")}
+              >
                 Create Account
-              </a>
+              </span>
             </div>
           </form>
         </div>

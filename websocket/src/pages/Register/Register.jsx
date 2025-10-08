@@ -3,6 +3,7 @@ import "./register.css";
 import axios from "axios";
 import Swal from "sweetalert2";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import { useNavigate } from "react-router-dom";
 export default function Register() {
   const [formData, setFormData] = useState({
     name: "",
@@ -10,7 +11,7 @@ export default function Register() {
     password: "",
     image: null,
   });
-
+  const navigateTo = useNavigate();
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -72,7 +73,7 @@ export default function Register() {
         cancelButtonText: "Stay Here",
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = "/login";
+          navigateTo("/login")
         } else {
           setFormData({ name: "", email: "", password: "", image: null });
           setErrors({});
@@ -214,9 +215,9 @@ export default function Register() {
                 <div className="login-redirect">
                   <p>
                     Already have an account?{" "}
-                    <a href="https://chat-application-alpha-navy.vercel.app/login">
+                    <span onClick={() => navigateTo("/login")}>
                       <i className="bi bi-box-arrow-in-right"></i> Login here
-                    </a>
+                    </span>
                   </p>
                 </div>
               </form>
