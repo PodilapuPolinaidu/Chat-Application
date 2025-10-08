@@ -9,7 +9,7 @@ const chatController = {
         messageData;
 
       // Validate required fields
-      if (!senderId || !receiverId || !content || !senderName || !room) {
+      if (!senderId || !receiverId || !content || !senderName) {
         console.error(
           "❌ [SAVE MESSAGE] Missing required fields:",
           messageData
@@ -23,7 +23,7 @@ const chatController = {
       const insertQuery = `
         INSERT INTO messages (senderId, receiverId, content, senderName, room, tempId) 
         VALUES ($1, $2, $3, $4, $5, $6) 
-        RETURNING id, senderId, receiverId, content, timestamp, status, senderName
+        RETURNING id, senderId, receiverId, content, timestamp, status, senderName, room
       `;
 
       const insertValues = [
@@ -31,7 +31,7 @@ const chatController = {
         Number(receiverId),
         content,
         senderName,
-        room,
+        room || `${senderId}_${receiverId}`,
         tempId || null,
       ];
 
@@ -58,11 +58,12 @@ const chatController = {
     }
   },
 
-  // Add method to get messages
   async getMessagesBetweenUsers(senderId, receiverId) {
     try {
       const query = `
-        SELECT m.*, u.name as senderName 
+        SELECT m.id, m.senderId, m.receiverId, m.content, 
+               m.timestamp, m.status, m.senderName, m.room,
+               u.name as senderName
         FROM messages m 
         JOIN users u ON m.senderId = u.id 
         WHERE (m.senderId = $1 AND m.receiverId = $2) 
