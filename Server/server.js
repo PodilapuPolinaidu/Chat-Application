@@ -20,6 +20,7 @@ const io = socketIo(server, {
   cors: {
     origin: [
       "https://chat-application-alpha-navy.vercel.app",
+      "http://localhost:5173",
     ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -28,6 +29,7 @@ const io = socketIo(server, {
 app.use(cookieParser());
 const allowedOrigins = [
   "https://chat-application-alpha-navy.vercel.app",
+  "http://localhost:5173",
 ];
 
 app.use(
