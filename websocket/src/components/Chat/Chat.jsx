@@ -18,7 +18,6 @@ const Chat = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
-    console.log(token);
     const email = params.get("email");
     const userId = params.get("id");
     if (token) {
@@ -27,23 +26,44 @@ const Chat = () => {
       document.cookie = `id=${userId}; path=/`;
     }
     // console.log(userId);
-    const getCookieId = () => {
-      console.log(document.cookie);
-      const value = `; ${document.cookie}`;
-      // console.log(value);
-      const parts = value.split(`; id=`);
-      // console.log(parts);
-      if (parts.length === 2) {
-        return Number(parts.pop().split(";").shift());
-      }
-      return null;
-    };
+    // const getCookieId = () => {
+    //   console.log(document.cookie);
+    //   const value = `; ${document.cookie}`;
+    //   // console.log(value);
+    //   const parts = value.split(`; id=`);
+    //   // console.log(parts);
+    //   if (parts.length === 2) {
+    //     return Number(parts.pop().split(";").shift());
+    //   }
+    //   return null;
+    // };
 
     if (userId) {
       setCookieId(Number(userId));
     } else {
-      const id = getCookieId();
-      setCookieId(id);
+      const token = localStorage.getItem("userToken");
+      const userId = localStorage.getItem("userId");
+      const userData = localStorage.getItem("userData");
+
+      console.log("LocalStorage:", {
+        token,
+        userId,
+        userData: userData ? JSON.parse(userData) : null,
+      });
+      console.log("Cookies:", document.cookie);
+
+      // Use localStorage as primary source
+      if (userId) {
+        console.log("Using userId from localStorage:", userId);
+        setCookieId(Number(userId));
+
+        if (userData) {
+          setCurrentUser(JSON.parse(userData));
+        }
+      } else {
+        console.log("No userId found, redirecting to login");
+        window.location.href = "/login";
+      }
     }
   }, []);
 
