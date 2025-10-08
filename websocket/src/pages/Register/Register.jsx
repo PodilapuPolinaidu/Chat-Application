@@ -214,7 +214,7 @@ export default function Register() {
                 <div className="login-redirect">
                   <p>
                     Already have an account?{" "}
-                    <a href="/login">
+                    <a href="https://chat-application-alpha-navy.vercel.app/login">
                       <i className="bi bi-box-arrow-in-right"></i> Login here
                     </a>
                   </p>

@@ -426,17 +426,11 @@ io.on("connection", (socket) => {
   });
 });
 
-// app.use(express.static(path.join(__dirname, "../websocket/dist")));
-
-// app.get(/^\/(?!api).*/, (req, res) => {
-//   res.sendFile(path.join(__dirname, "../websocket/dist", "index.html"));
-// });
 
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
   res.status(500).json({ error: "Internal server error" });
 });
-// Add these test routes after your other routes
 app.get("/api/test", (req, res) => {
   res.json({
     message: "Backend API is working!",

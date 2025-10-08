@@ -36,7 +36,8 @@ const Login = () => {
         confirmButtonText: "Enter Chat",
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = "/home";
+          window.location.href =
+            "https://chat-application-alpha-navy.vercel.app/home";
         }
       });
 
