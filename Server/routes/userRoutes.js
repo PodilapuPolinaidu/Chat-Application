@@ -33,7 +33,8 @@ router.get(
 router.get(
   "/auth/microsoft/callback",
   passport.authenticate("microsoft", {
-    failureRedirect: "https://your-frontend-app.vercel.app",
+    failureRedirect:
+      "https://chat-application-4i20q6geo-polinaidus-projects.vercel.app",
     session: false,
   }),
   (req, res) => {
@@ -45,7 +46,7 @@ router.get(
     );
 
     res.redirect(
-      `https://your-frontend-app.vercel.app/home?token=${token}&id=${user.id}&email=${user.email}`
+      `https://chat-application-4i20q6geo-polinaidus-projects.vercel.app/home?token=${token}&id=${user.id}&email=${user.email}`
     );
   }
 );

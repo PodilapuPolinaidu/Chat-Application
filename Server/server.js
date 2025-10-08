@@ -20,7 +20,7 @@ const io = socketIo(server, {
   cors: {
     origin: [
       "http://localhost:5173",
-      "https://chat-application-eg5ehd8r9-polinaidus-projects.vercel.app",
+      "https://chat-application-4i20q6geo-polinaidus-projects.vercel.app",
     ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -29,7 +29,7 @@ const io = socketIo(server, {
 app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://chat-application-eg5ehd8r9-polinaidus-projects.vercel.app", // Your actual Vercel URL
+  "https://chat-application-4i20q6geo-polinaidus-projects.vercel.app", 
 ];
 
 app.use(

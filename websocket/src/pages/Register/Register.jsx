@@ -72,8 +72,7 @@ export default function Register() {
         cancelButtonText: "Stay Here",
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href =
-            "https://chat-application-5-qgda.onrender.com/login";
+          window.location.href = "/login";
         } else {
           setFormData({ name: "", email: "", password: "", image: null });
           setErrors({});
