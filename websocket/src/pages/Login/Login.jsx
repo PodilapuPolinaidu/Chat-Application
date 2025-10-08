@@ -23,7 +23,7 @@ const Login = () => {
     }
     try {
       const res = await axios.post(
-        "https://chat-application-4-s157.onrender.com/api/users/login",
+        "https://chat-application-5-qgda.onrender.com/api/users/login",
         { email, password },
         { withCredentials: true }
       );

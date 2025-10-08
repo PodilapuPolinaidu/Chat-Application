@@ -58,7 +58,7 @@ export default function Register() {
   async function sendForm(obj) {
     try {
       await axios.post(
-        "https://chat-application-4-s157.onrender.com/api/users/register",
+        "https://chat-application-5-qgda.onrender.com/api/users/register",
         obj
       );
       Swal.fire({
@@ -240,7 +240,7 @@ export default function Register() {
                     className="oauth-btn microsoft-btn"
                     onClick={() => {
                       window.location.href =
-                        "https://chat-application-4-s157.onrender.com/api/users/auth/microsoft";
+                        "https://chat-application-5-qgda.onrender.com/api/users/auth/microsoft";
                     }}
                   >
                     <i

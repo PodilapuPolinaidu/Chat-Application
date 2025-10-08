@@ -49,7 +49,7 @@ const Chat = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("https://chat-application-4-s157.onrender.com/api/users");
+        const response = await axios.get("https://chat-application-5-qgda.onrender.com/api/users");
         const data = response.data;
 
         const filteredUsers = data.filter((u) => u.id !== cookieId);
