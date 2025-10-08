@@ -63,6 +63,7 @@ const ChatWindow = React.memo(
         ]);
 
         socket.emit("send_message", messageData, (savedMessage) => {
+          console.log(savedMessage);
           if (savedMessage?.id) {
             setMessages((prev) =>
               prev.map((msg) =>
