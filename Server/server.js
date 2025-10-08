@@ -260,8 +260,8 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("callUser", ({ targetUserId, from, callerId, callType }) => {
-    const receiverSockets = onlineUsers.get(targetUserId);
+  socket.on("callUser", ({ targetUserId, from, callerId, callType, sdp }) => {
+    const receiverSockets = onlineUsers.get(Number(targetUserId));
 
     if (receiverSockets && receiverSockets.size > 0) {
       const callId = `${callerId}_${targetUserId}_${Date.now()}`;
@@ -279,11 +279,11 @@ io.on("connection", (socket) => {
           callerId,
           callType,
           callId,
+          sdp, // Send the SDP offer with the call
         });
       }
 
       socket.emit("callInitiated", { callId });
-
       console.log(
         `Incoming call sent to user ${targetUserId}, callId: ${callId}`
       );
@@ -396,7 +396,7 @@ io.on("connection", (socket) => {
   socket.on("webrtcAnswer", ({ target, sdp, callId }) => {
     console.log("WebRTC answer received, forwarding to:", target);
 
-    const targetSockets = onlineUsers.get(target);
+    const targetSockets = onlineUsers.get(Number(target));
     if (targetSockets && targetSockets.size > 0) {
       for (const targetSocketId of targetSockets) {
         io.to(targetSocketId).emit("webrtcAnswer", {

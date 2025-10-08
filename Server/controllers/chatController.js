@@ -5,88 +5,81 @@ const chatController = {
     try {
       console.log("💾 [SAVE MESSAGE] Starting to save message:", messageData);
 
-      const { senderId, receiverId, content, senderName, room } = messageData;
+      const { senderId, receiverId, content, senderName, room, tempId } =
+        messageData;
 
       // Validate required fields
-      if (!senderId || !receiverId || !content) {
-        console.error("❌ [SAVE MESSAGE] Missing required fields:", {
-          senderId,
-          receiverId,
-          content,
-        });
+      if (!senderId || !receiverId || !content || !senderName || !room) {
+        console.error(
+          "❌ [SAVE MESSAGE] Missing required fields:",
+          messageData
+        );
         throw new Error("Missing required fields");
       }
 
       console.log("🔍 [SAVE MESSAGE] Attempting database insert...");
 
-      // ✅ PostgreSQL syntax with RETURNING
+      // Insert message
       const insertQuery = `
-        INSERT INTO messages (senderId, receiverId, content, status, senderName, room) 
+        INSERT INTO messages (senderId, receiverId, content, senderName, room, tempId) 
         VALUES ($1, $2, $3, $4, $5, $6) 
-        RETURNING *
+        RETURNING id, senderId, receiverId, content, timestamp, status, senderName
       `;
+
       const insertValues = [
-        senderId,
-        receiverId,
+        Number(senderId),
+        Number(receiverId),
         content,
-        "sent",
         senderName,
         room,
+        tempId || null,
       ];
 
-      console.log("📝 [SAVE MESSAGE] Executing query:", insertQuery);
-      console.log("📝 [SAVE MESSAGE] With values:", insertValues);
-
+      console.log("📝 [SAVE MESSAGE] Executing query...");
       const result = await pool.query(insertQuery, insertValues);
+
+      if (!result.rows[0]) {
+        throw new Error("No data returned after insert");
+      }
+
       console.log(
-        "✅ [SAVE MESSAGE] Insert successful, result:",
+        "✅ [SAVE MESSAGE] Message saved successfully:",
         result.rows[0]
       );
+      return result.rows[0];
+    } catch (error) {
+      console.error("❌ [SAVE MESSAGE] ERROR:", error);
+      console.error("Error details:", {
+        message: error.message,
+        code: error.code,
+        receivedData: messageData,
+      });
+      throw error;
+    }
+  },
 
-      // Get the complete message with sender name
-      const selectQuery = `
-        SELECT m.id, m.senderId, m.receiverId,
-               m.content, m.timestamp, m.status,
-               u1.name AS senderName
-        FROM messages m
-        JOIN users u1 ON m.senderId = u1.id
-        WHERE m.id = $1
+  // Add method to get messages
+  async getMessagesBetweenUsers(senderId, receiverId) {
+    try {
+      const query = `
+        SELECT m.*, u.name as senderName 
+        FROM messages m 
+        JOIN users u ON m.senderId = u.id 
+        WHERE (m.senderId = $1 AND m.receiverId = $2) 
+           OR (m.senderId = $3 AND m.receiverId = $4) 
+        ORDER BY m.timestamp ASC
       `;
 
-      console.log("🔍 [SAVE MESSAGE] Fetching complete message...");
-      const messageResult = await pool.query(selectQuery, [result.rows[0].id]);
+      const result = await pool.query(query, [
+        Number(senderId),
+        Number(receiverId),
+        Number(receiverId),
+        Number(senderId),
+      ]);
 
-      if (messageResult.rows.length === 0) {
-        console.error("❌ [SAVE MESSAGE] Message not found after insert!");
-        throw new Error("Message not found after insert");
-      }
-
-      console.log(
-        "✅ [SAVE MESSAGE] Complete message fetched:",
-        messageResult.rows[0]
-      );
-      return messageResult.rows[0];
+      return result.rows;
     } catch (error) {
-      console.error("[SAVE MESSAGE] ERROR DETAILS:");
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
-      console.error("Error code:", error.code);
-      console.error("Received data:", messageData);
-
-      // Check for specific PostgreSQL errors
-      if (error.code === "23503") {
-        // Foreign key violation
-        console.error(
-          "FOREIGN KEY VIOLATION: User ID doesn't exist in users table"
-        );
-      } else if (error.code === "23502") {
-        // Not null violation
-        console.error("NOT NULL VIOLATION: Missing required field");
-      } else if (error.code === "42P01") {
-        // Table doesn't exist
-        console.error("TABLE DOESN'T EXIST: messages table missing");
-      }
-
+      console.error("Error fetching messages:", error);
       throw error;
     }
   },

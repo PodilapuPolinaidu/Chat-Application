@@ -87,13 +87,19 @@ const ChatWindow = React.memo(
     }, []);
 
     useEffect(() => {
-      if (!room) return;
+      if (!room || !currentUser?.id || !receiver?.id) return;
 
       const fetchMessages = async () => {
         setIsLoading(true);
         try {
           const response = await axios.get(
-            `https://chat-application-5-qgda.onrender.com/api/chat/${currentUser.id}/${receiver.id}`
+            `https://chat-application-5-qgda.onrender.com/api/chat/messages`,
+            {
+              params: {
+                senderId: currentUser.id,
+                receiverId: receiver.id,
+              },
+            }
           );
           const data = response.data;
           setMessages(Array.isArray(data) ? data : []);

@@ -10,6 +10,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
     callerInfo: null,
     callId: null,
   });
+
   const pendingCandidatesRef = useRef([]);
   const remoteDescriptionSetRef = useRef(false);
   const localVideoRef = useRef(null);
@@ -50,6 +51,10 @@ export const VideoCall = (socket, currentUser, receiver) => {
       callTimerRef.current = null;
     }
 
+    // Reset refs
+    pendingCandidatesRef.current = [];
+    remoteDescriptionSetRef.current = false;
+
     setCallState({
       isCalling: false,
       isRinging: false,
@@ -61,7 +66,6 @@ export const VideoCall = (socket, currentUser, receiver) => {
     });
   }, []);
 
-  // In your VideoCall hook, modify the createPeerConnection function
   const createPeerConnection = useCallback(() => {
     // Close existing connection if any
     if (peerConnectionRef.current) {
@@ -87,21 +91,32 @@ export const VideoCall = (socket, currentUser, receiver) => {
 
     // Handle incoming remote stream
     pc.ontrack = (event) => {
+      console.log("🎥 Received remote track:", event.track.kind);
       const remoteStream = event.streams[0];
-      if (remoteVideoRef.current) {
+      if (remoteVideoRef.current && remoteStream) {
         remoteVideoRef.current.srcObject = remoteStream;
+        console.log("✅ Remote video stream set");
       }
     };
 
     // ICE candidate handling
-    // Add this to your createPeerConnection function
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        console.log("🧊 Sending ICE candidate");
+        socket.emit("iceCandidate", {
+          target: receiver.id,
+          candidate: event.candidate,
+          callId: callState.callId,
+        });
+      }
+    };
+
     pc.onconnectionstatechange = () => {
       console.log("🔄 PeerConnection state:", pc.connectionState);
       if (pc.connectionState === "connected") {
         console.log("✅ PeerConnection connected successfully!");
       } else if (pc.connectionState === "failed") {
         console.log("❌ PeerConnection failed");
-        // Attempt to restart
         setTimeout(() => {
           if (pc.connectionState === "failed") {
             console.log("🔄 Restarting failed connection...");
@@ -115,18 +130,9 @@ export const VideoCall = (socket, currentUser, receiver) => {
       console.log("🧊 ICE connection state:", pc.iceConnectionState);
     };
 
-    pc.onsignalingstatechange = () => {
-      console.log("📶 Signaling state:", pc.signalingState);
-    };
-
-    pc.onnegotiationneeded = () => {
-      console.log("Negotiation needed");
-    };
-
     return pc;
-  }, [cleanupCall]);
+  }, [socket, receiver, callState.callId, cleanupCall]);
 
-  // In your startCall and acceptCall functions, make sure to remove existing tracks
   const startCall = async (callType = "video") => {
     try {
       // Clean up any existing call first
@@ -138,26 +144,45 @@ export const VideoCall = (socket, currentUser, receiver) => {
         callType,
       }));
 
-      // Get user media
+      // Get user media with better constraints
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: callType === "video",
-        audio: true,
+        video:
+          callType === "video"
+            ? {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              }
+            : false,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
 
       localStreamRef.current = stream;
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
+        console.log("✅ Local video stream set");
       }
 
       // Create new peer connection
       peerConnectionRef.current = createPeerConnection();
 
+      // Create and set local offer
+      const offer = await peerConnectionRef.current.createOffer();
+      await peerConnectionRef.current.setLocalDescription(offer);
+
+      // Emit call event
       socket.emit("callUser", {
         targetUserId: receiver.id,
         from: currentUser.name,
         callerId: currentUser.id,
         callType,
+        sdp: offer, // Send the offer immediately
       });
+
+      console.log("📞 Call initiated to:", receiver.id);
     } catch (error) {
       console.error("❌ Error starting call:", error);
       cleanupCall();
@@ -175,9 +200,20 @@ export const VideoCall = (socket, currentUser, receiver) => {
         isRinging: false,
       }));
 
+      // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: callState.callType === "video",
-        audio: true,
+        video:
+          callState.callType === "video"
+            ? {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              }
+            : false,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
 
       localStreamRef.current = stream;
@@ -185,14 +221,24 @@ export const VideoCall = (socket, currentUser, receiver) => {
         localVideoRef.current.srcObject = stream;
       }
 
+      // Create peer connection
       peerConnectionRef.current = createPeerConnection();
 
-      const offer = await peerConnectionRef.current.createOffer();
-      await peerConnectionRef.current.setLocalDescription(offer);
+      // Set remote description from the offer that was sent with the call
+      if (callState.remoteOffer) {
+        await peerConnectionRef.current.setRemoteDescription(
+          new RTCSessionDescription(callState.remoteOffer)
+        );
+      }
 
+      // Create answer
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
+
+      // Send answer
       socket.emit("webrtcAnswer", {
         target: callState.callerInfo.callerId,
-        sdp: peerConnectionRef.current.localDescription,
+        sdp: answer,
         callId: callState.callId,
       });
 
@@ -200,8 +246,10 @@ export const VideoCall = (socket, currentUser, receiver) => {
         callerId: callState.callerInfo.callerId,
         callId: callState.callId,
       });
+
+      console.log("✅ Call accepted");
     } catch (error) {
-      console.error("Error accepting call:", error);
+      console.error("❌ Error accepting call:", error);
       cleanupCall();
     }
   }, [callState, socket, createPeerConnection, cleanupCall]);
@@ -235,7 +283,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
       }));
     };
 
-    const handleIncomingCall = ({ from, callerId, callType, callId }) => {
+    const handleIncomingCall = ({ from, callerId, callType, callId, sdp }) => {
       setCallState({
         isCalling: false,
         isRinging: false,
@@ -244,6 +292,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
         callType,
         callerInfo: { from, callerId },
         callId,
+        remoteOffer: sdp, // Store the offer for later use
       });
     };
 
@@ -254,84 +303,47 @@ export const VideoCall = (socket, currentUser, receiver) => {
         isOnCall: true,
         callId,
       }));
-
-      setTimeout(async () => {
-        try {
-          peerConnectionRef.current = createPeerConnection();
-          const offer = await peerConnectionRef.current.createOffer();
-          await peerConnectionRef.current.setLocalDescription(offer);
-
-          socket.emit("webrtcOffer", {
-            target: answerFrom,
-            sdp: offer,
-            callId,
-          });
-        } catch (error) {
-          console.error("Error creating offer:", error);
-          cleanupCall();
-        }
-      }, 1000);
+      console.log("✅ Call accepted by:", answerFrom);
     };
 
     const handleCallRejected = () => {
+      console.log("❌ Call rejected");
       cleanupCall();
     };
 
     const handleCallCanceled = () => {
+      console.log("📞 Call canceled");
       cleanupCall();
     };
 
     const handleCallEnded = () => {
+      console.log("📞 Call ended");
       cleanupCall();
     };
 
-    // In your useEffect socket handlers, update these:
-
-    const handleWebRTCOffer = async ({ sdp, from, callId }) => {
+    const handleWebRTCOffer = async ({ sdp, from }) => {
       console.log("🔍 [WebRTC] Received offer from:", from);
 
       if (!peerConnectionRef.current) {
-        console.log("🔄 [WebRTC] Creating new peer connection for offer");
-        peerConnectionRef.current = createPeerConnection();
+        console.log("❌ No peer connection for offer");
+        return;
       }
 
       try {
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = null;
-        }
-
-        const offer = new RTCSessionDescription(sdp);
         console.log("📝 [WebRTC] Setting remote description...");
-
+        const offer = new RTCSessionDescription(sdp);
         await peerConnectionRef.current.setRemoteDescription(offer);
-        remoteDescriptionSetRef.current = true; // ✅ Mark as set
+        remoteDescriptionSetRef.current = true;
 
         console.log("✅ [WebRTC] Remote description set successfully");
 
-        // 🔄 Add any pending ICE candidates now
+        // Add pending ICE candidates
         for (const candidate of pendingCandidatesRef.current) {
           await peerConnectionRef.current.addIceCandidate(candidate);
         }
         pendingCandidatesRef.current = [];
-
-        console.log("📝 [WebRTC] Creating answer...");
-        const answer = await peerConnectionRef.current.createAnswer();
-        await peerConnectionRef.current.setLocalDescription(answer);
-        console.log("✅ [WebRTC] Local description set");
-
-        socket.emit("webrtcAnswer", {
-          target: from,
-          sdp: peerConnectionRef.current.localDescription,
-          callId,
-        });
-        console.log("📤 [WebRTC] Answer sent back");
       } catch (error) {
-        console.error("❌ [WebRTC] Error in handleWebRTCOffer:", error);
-        if (peerConnectionRef.current) {
-          peerConnectionRef.current.close();
-          peerConnectionRef.current = null;
-        }
-        peerConnectionRef.current = createPeerConnection();
+        console.error("❌ [WebRTC] Error handling offer:", error);
       }
     };
 
@@ -343,12 +355,11 @@ export const VideoCall = (socket, currentUser, receiver) => {
 
       try {
         console.log("📨 Handling WebRTC answer...");
-
         const answer = new RTCSessionDescription(sdp);
         await peerConnectionRef.current.setRemoteDescription(answer);
-        remoteDescriptionSetRef.current = true; // ✅ Mark as set
+        remoteDescriptionSetRef.current = true;
 
-        // 🔄 Add pending ICE candidates
+        // Add pending ICE candidates
         for (const candidate of pendingCandidatesRef.current) {
           await peerConnectionRef.current.addIceCandidate(candidate);
         }
@@ -364,19 +375,17 @@ export const VideoCall = (socket, currentUser, receiver) => {
       if (!peerConnectionRef.current) return;
 
       try {
-        if (remoteDescriptionSetRef.current) {
-          // Remote description ready → add candidate immediately
-          await peerConnectionRef.current.addIceCandidate(candidate);
+        const iceCandidate = new RTCIceCandidate(candidate);
+
+        if (peerConnectionRef.current.remoteDescription) {
+          await peerConnectionRef.current.addIceCandidate(iceCandidate);
           console.log("🧊 ICE candidate added");
         } else {
-          // Otherwise, queue it for later
-          console.log(
-            "⏳ Queuing ICE candidate (remote description not ready)"
-          );
-          pendingCandidatesRef.current.push(candidate);
+          console.log("⏳ Queuing ICE candidate");
+          pendingCandidatesRef.current.push(iceCandidate);
         }
       } catch (error) {
-        console.error("Error adding ICE candidate:", error);
+        console.error("❌ Error adding ICE candidate:", error);
       }
     };
 
@@ -403,7 +412,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
       socket.off("webrtcAnswer", handleWebRTCAnswer);
       socket.off("iceCandidate", handleICECandidate);
     };
-  }, [socket, createPeerConnection, cleanupCall]);
+  }, [socket, cleanupCall]);
 
   return {
     callState,
