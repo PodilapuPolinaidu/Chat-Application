@@ -15,6 +15,7 @@ const passport = require("passport");
 const app = express();
 const { findUserById } = require("./models/userModel");
 const server = http.createServer(app);
+const PostgreSQLStore = require("connect-pg-simple")(session);
 
 const io = socketIo(server, {
   cors: {
@@ -93,14 +94,19 @@ const initDatabase = async () => {
 
 // Initialize database
 initDatabase();
+
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "your_production_secret_key",
+    store: new PostgreSQLStore({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET || "your_secret_key",
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     },
   })
 );
