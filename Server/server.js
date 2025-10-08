@@ -7,10 +7,12 @@ const userRoutes = require("./routes/userRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const { Pool } = require("pg");
 const chatController = require("./controllers/chatController");
+const path = require("path");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const passport = require("passport");
 const app = express();
+const { findUserById } = require("./models/userModel");
 const server = http.createServer(app);
 const PostgreSQLStore = require("connect-pg-simple")(session);
 
@@ -24,9 +26,7 @@ const io = socketIo(server, {
     credentials: true,
   },
 });
-
 app.use(cookieParser());
-
 const allowedOrigins = [
   "https://chat-application-alpha-navy.vercel.app",
   "http://localhost:5173",
@@ -36,6 +36,7 @@ app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
+
       if (allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
@@ -46,7 +47,7 @@ app.use(
   })
 );
 
-// PostgreSQL connection
+// PostgreSQL connection for Render
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -56,6 +57,8 @@ const pool = new Pool({
 const initDatabase = async () => {
   try {
     console.log("Attempting to connect to PostgreSQL...");
+    console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
+
     const client = await pool.connect();
     console.log("Successfully connected to PostgreSQL on Render");
 
@@ -74,8 +77,8 @@ const initDatabase = async () => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
-        senderId INTEGER NOT NULL REFERENCES users(id),
-        receiverId INTEGER NOT NULL REFERENCES users(id),
+        senderId INTEGER NOT NULL,
+        receiverId INTEGER NOT NULL,
         content TEXT NOT NULL,
         room VARCHAR(255) NOT NULL,
         status VARCHAR(50) DEFAULT 'sent',
@@ -83,12 +86,6 @@ const initDatabase = async () => {
         senderName VARCHAR(100),
         tempId BIGINT
       )
-    `);
-
-    // Create indexes
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room);
-      CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
     `);
 
     client.release();
@@ -112,7 +109,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     },
   })
 );
@@ -121,11 +118,53 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(express.json());
 
-// Use routes - make sure these are after middleware
 app.use("/api/users", userRoutes);
 app.use("/api/chat", chatRoutes);
+const MicrosoftStrategy = require("passport-microsoft").Strategy;
 
-// ... rest of your server code (passport strategies, socket.io handlers)
+passport.use(
+  new MicrosoftStrategy(
+    {
+      clientID: process.env.MICROSOFT_CLIENT_ID,
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+      callbackURL: process.env.MICROSOFT_CALLBACK_URL,
+      scope: ["user.read"],
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails?.[0]?.value;
+        const name = profile.displayName;
+        const profileImage = profile.photoURL;
+
+        const result = await pool.query(
+          "SELECT * FROM users WHERE email = $1",
+          [email]
+        );
+        let user;
+
+        if (result.rows.length > 0) {
+          user = result.rows[0];
+        } else {
+          const insertResult = await pool.query(
+            "INSERT INTO users (name, email, password, profile_image) VALUES ($1, $2, $3, $4) RETURNING *",
+            [name, email, "Signin with microsoft", profileImage]
+          );
+          user = insertResult.rows[0];
+        }
+
+        done(null, user);
+      } catch (error) {
+        done(error, null);
+      }
+    }
+  )
+);
+
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser(async (id, done) => {
+  const user = await findUserById(id);
+  done(null, user);
+});
 
 const onlineUsers = new Map();
 const userSocketMap = new Map();
@@ -221,8 +260,8 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("callUser", ({ targetUserId, from, callerId, callType, sdp }) => {
-    const receiverSockets = onlineUsers.get(Number(targetUserId));
+  socket.on("callUser", ({ targetUserId, from, callerId, callType }) => {
+    const receiverSockets = onlineUsers.get(targetUserId);
 
     if (receiverSockets && receiverSockets.size > 0) {
       const callId = `${callerId}_${targetUserId}_${Date.now()}`;
@@ -240,11 +279,11 @@ io.on("connection", (socket) => {
           callerId,
           callType,
           callId,
-          sdp, // Send the SDP offer with the call
         });
       }
 
       socket.emit("callInitiated", { callId });
+
       console.log(
         `Incoming call sent to user ${targetUserId}, callId: ${callId}`
       );
@@ -357,7 +396,7 @@ io.on("connection", (socket) => {
   socket.on("webrtcAnswer", ({ target, sdp, callId }) => {
     console.log("WebRTC answer received, forwarding to:", target);
 
-    const targetSockets = onlineUsers.get(Number(target));
+    const targetSockets = onlineUsers.get(target);
     if (targetSockets && targetSockets.size > 0) {
       for (const targetSocketId of targetSockets) {
         io.to(targetSocketId).emit("webrtcAnswer", {
