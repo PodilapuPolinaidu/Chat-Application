@@ -11,18 +11,8 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://chat-application-5-qgda.onrender.com/api/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "/index.html"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
   ]
 }

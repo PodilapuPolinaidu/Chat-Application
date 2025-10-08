@@ -20,9 +20,6 @@ const io = socketIo(server, {
   cors: {
     origin: [
       "https://chat-application-alpha-navy.vercel.app",
-      "https://chat-application-qarpuogfs-polinaidus-projects.vercel.app",
-      "https://chat-application-8ao7682xq-polinaidus-projects.vercel.app/",
-      "https://chat-application-8ao7682xq-polinaidus-projects.vercel.app",
     ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -31,9 +28,6 @@ const io = socketIo(server, {
 app.use(cookieParser());
 const allowedOrigins = [
   "https://chat-application-alpha-navy.vercel.app",
-  "https://chat-application-qarpuogfs-polinaidus-projects.vercel.app",
-  "https://chat-application-8ao7682xq-polinaidus-projects.vercel.app/",
-  "https://chat-application-8ao7682xq-polinaidus-projects.vercel.app",
 ];
 
 app.use(
