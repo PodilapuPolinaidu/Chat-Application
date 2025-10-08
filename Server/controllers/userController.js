@@ -34,44 +34,27 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await userModel.findUserByEmail(email);
-
     if (!user) return res.status(404).json({ msg: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ msg: "Invalid credentials" });
 
     const token = jwt.sign({ id: user.id, email: user.email }, secretKey, {
-      expiresIn: "24h",
+      expiresIn: "5h",
     });
-
-    const isProduction = process.env.NODE_ENV === "production";
-    const frontendDomain = isProduction
-      ? "chat-application-eg5ehd8r9-polinaidus-projects.vercel.app"
-      : "localhost";
-
     const cookieOptions = {
-      httpOnly: false, // Allow frontend JavaScript to access
-      secure: isProduction, // HTTPS only in production
-      sameSite: isProduction ? "none" : "lax", // 'none' for cross-site in production
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: false,
+      secure: false,
+      maxAge: 3600000000,
+      sameSite: "lax",
       path: "/",
-      domain: isProduction ? ".vercel.app" : undefined, // Allow subdomains in production
     };
-
+    console.log(token);
     res.cookie("token", token, cookieOptions);
-    res.cookie("id", user.id.toString(), cookieOptions);
-    res.cookie("Email", user.email, cookieOptions);
-    res.cookie("userName", user.name, cookieOptions);
 
-    res.json({
-      msg: "Login successful",
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
-    });
+    res.cookie("id", user.id, cookieOptions);
+    res.cookie("Email", user.email, cookieOptions);
+    res.json({ msg: "Login successful", token });
   } catch (err) {
     console.log(err);
     res.status(500).json({ msg: "Server error" });
