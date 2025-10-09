@@ -6,7 +6,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
     isRinging: false,
     isIncomingCall: false,
     isOnCall: false,
-    callType: null, 
+    callType: null,
     callerInfo: null,
     callId: null,
   });
@@ -49,7 +49,11 @@ export const VideoCall = (socket, currentUser, receiver) => {
     const configuration = {
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
+        {
+          urls: "turn:relay1.expressturn.com:3478",
+          username: "eftekhar",
+          credential: "turnserver",
+        },
       ],
     };
 
@@ -138,12 +142,15 @@ export const VideoCall = (socket, currentUser, receiver) => {
 
       peerConnectionRef.current = createPeerConnection();
 
-      const offer = await peerConnectionRef.current.createOffer();
-      await peerConnectionRef.current.setLocalDescription(offer);
+      await peerConnectionRef.current.setRemoteDescription(
+        callState.remoteOffer
+      ); // <-- set the offer received earlier
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
 
       socket.emit("webrtcAnswer", {
         target: callState.callerInfo.callerId,
-        sdp: peerConnectionRef.current.localDescription,
+        sdp: answer,
         callId: callState.callId,
       });
 
@@ -198,7 +205,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
       });
     };
 
-    const handleCallAccepted = ({ answerFrom, callId }) => {
+    const handleCallAccepted = async ({ answerFrom, callId }) => {
       setCallState((prev) => ({
         ...prev,
         isRinging: false,
@@ -206,22 +213,35 @@ export const VideoCall = (socket, currentUser, receiver) => {
         callId,
       }));
 
-      setTimeout(async () => {
-        try {
-          peerConnectionRef.current = createPeerConnection();
-          const offer = await peerConnectionRef.current.createOffer();
-          await peerConnectionRef.current.setLocalDescription(offer);
+      try {
+        peerConnectionRef.current = createPeerConnection();
 
-          socket.emit("webrtcOffer", {
-            target: answerFrom,
-            sdp: offer,
-            callId,
-          });
-        } catch (error) {
-          console.error("Error creating offer:", error);
-          cleanupCall();
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: callState.callType === "video",
+          audio: true,
+        });
+        localStreamRef.current = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
         }
-      }, 1000);
+        stream
+          .getTracks()
+          .forEach((track) =>
+            peerConnectionRef.current.addTrack(track, stream)
+          );
+
+        const offer = await peerConnectionRef.current.createOffer();
+        await peerConnectionRef.current.setLocalDescription(offer);
+
+        socket.emit("webrtcOffer", {
+          target: answerFrom,
+          sdp: offer,
+          callId,
+        });
+      } catch (error) {
+        console.error("Error creating offer:", error);
+        cleanupCall();
+      }
     };
 
     const handleCallRejected = () => {
@@ -237,10 +257,11 @@ export const VideoCall = (socket, currentUser, receiver) => {
     };
 
     const handleWebRTCOffer = async ({ sdp, from, callId }) => {
-      if (!peerConnectionRef.current) return;
-
       try {
+        peerConnectionRef.current = createPeerConnection();
+
         await peerConnectionRef.current.setRemoteDescription(sdp);
+
         const answer = await peerConnectionRef.current.createAnswer();
         await peerConnectionRef.current.setLocalDescription(answer);
 
@@ -297,7 +318,7 @@ export const VideoCall = (socket, currentUser, receiver) => {
       socket.off("webrtcAnswer", handleWebRTCAnswer);
       socket.off("iceCandidate", handleICECandidate);
     };
-  }, [socket, createPeerConnection, cleanupCall]);
+  }, [socket, createPeerConnection, cleanupCall, callState.callType]);
 
   return {
     callState,
