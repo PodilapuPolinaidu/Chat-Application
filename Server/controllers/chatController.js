@@ -5,18 +5,18 @@ const chatController = {
   // ✅ Get all messages between two users
   async getMessages(req, res) {
     try {
-      const { senderId, receiverId } = req.params;
+      const { senderid, receiverid } = req.params;
 
       const result = await pool.query(
-        `SELECT m.id, m.senderId, m.receiverId,
+        `SELECT m.id, m.senderid, m.receiverid,
                 m.content, m.timestamp, m.status,
                 u1.name AS senderName
          FROM messages m
-         JOIN users u1 ON m.senderId = u1.id
-         WHERE (m.senderId = $1 AND m.receiverId = $2)
-            OR (m.senderId = $3 AND m.receiverId = $4)
+         JOIN users u1 ON m.senderid = u1.id
+         WHERE (m.senderid = $1 AND m.receiverid = $2)
+            OR (m.senderid = $3 AND m.receiverid = $4)
          ORDER BY m.timestamp ASC`,
-        [senderId, receiverId, receiverId, senderId]
+        [senderid, receiverid, receiverid, senderid]
       );
       console.log(result);
       res.json(result.rows);
@@ -29,18 +29,18 @@ const chatController = {
   // ✅ Save a new message via REST API
   async saveMessage(req, res) {
     try {
-      const { senderId, receiverId, content, senderName, room } = req.body;
+      const { senderid, receiverid, content, senderName, room } = req.body;
 
-      if (!senderId || !receiverId || !content) {
+      if (!senderid || !receiverid || !content) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
       const insertQuery = `
-        INSERT INTO messages (senderId, receiverId, content, status, senderName, room) 
+        INSERT INTO messages (senderid, receiverid, content, status, senderName, room) 
         VALUES ($1, $2, $3, $4, $5, $6) 
         RETURNING *
       `;
-      const values = [senderId, receiverId, content, "sent", senderName, room];
+      const values = [senderid, receiverid, content, "sent", senderName, room];
 
       const result = await pool.query(insertQuery, values);
 
@@ -54,13 +54,13 @@ const chatController = {
   // ✅ This one is for socket (optional)
   async saveMessageForSocket(messageData) {
     try {
-      const { senderId, receiverId, content, senderName, room } = messageData;
+      const { senderid, receiverid, content, senderName, room } = messageData;
 
       const result = await pool.query(
-        `INSERT INTO messages (senderId, receiverId, content, status, senderName, room) 
+        `INSERT INTO messages (senderid, receiverid, content, status, senderName, room) 
          VALUES ($1, $2, $3, $4, $5, $6) 
          RETURNING *`,
-        [senderId, receiverId, content, "sent", senderName, room]
+        [senderid, receiverid, content, "sent", senderName, room]
       );
 
       return result.rows[0];

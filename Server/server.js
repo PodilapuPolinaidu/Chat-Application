@@ -77,8 +77,8 @@ const initDatabase = async () => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
-        senderId INTEGER NOT NULL,
-        receiverId INTEGER NOT NULL,
+        senderid INTEGER NOT NULL,
+        receiverid INTEGER NOT NULL,
         content TEXT NOT NULL,
         room VARCHAR(255) NOT NULL,
         status VARCHAR(50) DEFAULT 'sent',
@@ -206,7 +206,7 @@ io.on("connection", (socket) => {
       const savedMessage = await chatController.saveMessageForSocket(data);
       console.log("✅ [SOCKET] Message saved successfully:", savedMessage);
 
-      const receiverSockets = onlineUsers.get(Number(data.receiverId));
+      const receiverSockets = onlineUsers.get(Number(data.receiverid));
       console.log(
         "🔍 [SOCKET] Receiver sockets:",
         receiverSockets ? Array.from(receiverSockets) : "No sockets found"

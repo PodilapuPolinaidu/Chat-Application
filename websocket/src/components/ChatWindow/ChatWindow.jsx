@@ -137,7 +137,7 @@ const ChatWindow = React.memo(
           room,
         });
 
-        if (receiver && message.senderId === receiver.id) {
+        if (receiver && message.senderid === receiver.id) {
           socket.emit("message_read", {
             messageId: message.id,
             room,
@@ -300,7 +300,7 @@ const ChatWindow = React.memo(
             messages.map((msg) => (
               <Message
                 key={
-                  msg.id || msg.tempId || `msg-${msg.timestamp}-${msg.senderId}`
+                  msg.id || msg.tempId || `msg-${msg.timestamp}-${msg.senderid}`
                 }
                 message={msg}
                 isOwn={msg.senderid === currentUser.id}

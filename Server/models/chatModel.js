@@ -1,22 +1,22 @@
 const pool = require("../config/db"); // Import PostgreSQL pool
 
 const Message = {
-  getMessagesBetweenUsers: async (senderId, receiverId) => {
+  getMessagesBetweenUsers: async (senderid, receiverid) => {
     try {
       const result = await pool.query(
-        `SELECT m.id, m.senderId, m.receiverId,
+        `SELECT m.id, m.senderid, m.receiverid,
          m.content, m.timestamp, m.status,
          u1.name AS senderName
          FROM messages m
-         JOIN users u1 ON m.senderId = u1.id
-         WHERE (m.senderId = $1 AND m.receiverId = $2)
-         OR (m.senderId = $3 AND m.receiverId = $4)
+         JOIN users u1 ON m.senderid = u1.id
+         WHERE (m.senderid = $1 AND m.receiverid = $2)
+         OR (m.senderid = $3 AND m.receiverid = $4)
          ORDER BY m.timestamp ASC`,
         [
-          Number(senderId),
-          Number(receiverId),
-          Number(receiverId),
-          Number(senderId),
+          Number(senderid),
+          Number(receiverid),
+          Number(receiverid),
+          Number(senderid),
         ]
       );
       return result.rows;
@@ -26,19 +26,19 @@ const Message = {
     }
   },
 
-  saveMessage: async ({ senderId, receiverId, content, senderName }) => {
+  saveMessage: async ({ senderid, receiverid, content, senderName }) => {
     try {
       const result = await pool.query(
-        "INSERT INTO messages (senderId, receiverId, content, status, senderName) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [senderId, receiverId, content, "sent", senderName]
+        "INSERT INTO messages (senderid, receiverid, content, status, senderName) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        [senderid, receiverid, content, "sent", senderName]
       );
 
       const messageResult = await pool.query(
-        `SELECT m.id, m.senderId, m.receiverId,
+        `SELECT m.id, m.senderid, m.receiverid,
                 m.content, m.timestamp, m.status,
                 u1.name AS senderName
          FROM messages m
-         JOIN users u1 ON m.senderId = u1.id
+         JOIN users u1 ON m.senderid = u1.id
          WHERE m.id = $1`,
         [result.rows[0].id]
       );
