@@ -48,8 +48,8 @@ const ChatWindow = React.memo(
 
         const tempId = Date.now();
         const messageData = {
-          senderId: currentUser.id,
-          receiverId: receiver.id,
+          senderid: currentUser.id,
+          receiverid: receiver.id,
           content: content.trim(),
           room,
           tempId,
@@ -96,6 +96,7 @@ const ChatWindow = React.memo(
             `https://chat-application-5-qgda.onrender.com/api/chat/${currentUser.id}/${receiver.id}`
           );
           const data = response.data;
+          console.log(response.data);
           setMessages(Array.isArray(data) ? data : []);
         } catch (error) {
           console.error("Error fetching messages:", error);
@@ -121,6 +122,7 @@ const ChatWindow = React.memo(
       };
 
       const handleReceiveMessage = (message) => {
+        console.log(message);
         setMessages((prev) => {
           const isDuplicate = prev.some(
             (msg) =>
@@ -301,7 +303,7 @@ const ChatWindow = React.memo(
                   msg.id || msg.tempId || `msg-${msg.timestamp}-${msg.senderId}`
                 }
                 message={msg}
-                isOwn={msg.senderId === currentUser.id}
+                isOwn={msg.senderid === currentUser.id}
               />
             ))
           )}

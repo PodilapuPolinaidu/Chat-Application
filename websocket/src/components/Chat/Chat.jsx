@@ -26,7 +26,6 @@ const Chat = () => {
     };
     const id = getCookieId();
     setCookieId(id);
-    console.log(getCookieId());
   }, []);
 
   useEffect(() => {

@@ -18,7 +18,7 @@ const chatController = {
          ORDER BY m.timestamp ASC`,
         [senderId, receiverId, receiverId, senderId]
       );
-
+      console.log(result);
       res.json(result.rows);
     } catch (error) {
       console.error("❌ Error fetching messages:", error);
