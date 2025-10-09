@@ -45,45 +45,61 @@ export const VideoCall = (socket, currentUser, receiver) => {
     });
   }, []);
 
-  const createPeerConnection = useCallback(() => {
-    const configuration = {
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        {
-          urls: "turn:relay1.expressturn.com:3478",
-          username: "eftekhar",
-          credential: "turnserver",
-        },
-      ],
-    };
+  const createPeerConnection = useCallback(
+    (callType = "video") => {
+      const configuration = {
+        iceServers: [
+          { urls: "stun:yourdomain.com:3478" },
+          {
+            urls: "turn:yourdomain.com:3478",
+            username: "poli@gmail.com",
+            credential: "Poli@123",
+          },
+        ],
+      };
 
-    const pc = new RTCPeerConnection(configuration);
+      const pc = new RTCPeerConnection(configuration);
 
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, localStreamRef.current);
-      });
-    }
-
-    pc.ontrack = (event) => {
-      const remoteStream = event.streams[0];
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
+      // Lock m-line order: audio first, then video (if video)
+      pc.addTransceiver("audio", { direction: "sendrecv" });
+      if (callState.callType === "video" || callType === "video") {
+        pc.addTransceiver("video", { direction: "sendrecv" });
       }
-    };
 
-    pc.onicecandidate = (event) => {
-      if (event.candidate && callState.callId) {
-        socket.emit("iceCandidate", {
-          target: callState.callerInfo?.callerId || receiver.id,
-          candidate: event.candidate,
-          callId: callState.callId,
+      // Add any local tracks (if available) AFTER adding transceivers so the m-line order stays consistent.
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => {
+          pc.addTrack(track, localStreamRef.current);
         });
       }
-    };
 
-    return pc;
-  }, [socket, receiver, callState]);
+      pc.ontrack = (event) => {
+        const remoteStream = event.streams && event.streams[0];
+        if (remoteVideoRef.current && remoteStream) {
+          remoteVideoRef.current.srcObject = remoteStream;
+        }
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate && callState.callId) {
+          // send iceCandidate to the other peer; target must be the other user's id
+          const target =
+            // if we are callee, callerId is in callerInfo; if caller, we need answerer id (set in callState when accepted)
+            callState.callerInfo?.callerId ||
+            callState.answererId ||
+            receiver?.id;
+          socket.emit("iceCandidate", {
+            target,
+            candidate: event.candidate,
+            callId: callState.callId,
+          });
+        }
+      };
+
+      return pc;
+    },
+    [socket, receiver, callState]
+  );
 
   const startCall = useCallback(
     async (callType = "video") => {
@@ -211,35 +227,44 @@ export const VideoCall = (socket, currentUser, receiver) => {
         isRinging: false,
         isOnCall: true,
         callId,
+        answererId: answerFrom,
       }));
 
       try {
-        peerConnectionRef.current = createPeerConnection();
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: callState.callType === "video",
-          audio: true,
-        });
-        localStreamRef.current = stream;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
+        // create pc and attach local stream
+        if (peerConnectionRef.current) {
+          peerConnectionRef.current.close();
+          peerConnectionRef.current = null;
         }
-        stream
+        peerConnectionRef.current = createPeerConnection(callState.callType);
+
+        // get local media (if not already)
+        if (!localStreamRef.current) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: callState.callType === "video",
+            audio: true,
+          });
+          localStreamRef.current = stream;
+          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        }
+
+        localStreamRef.current
           .getTracks()
           .forEach((track) =>
-            peerConnectionRef.current.addTrack(track, stream)
+            peerConnectionRef.current.addTrack(track, localStreamRef.current)
           );
 
         const offer = await peerConnectionRef.current.createOffer();
         await peerConnectionRef.current.setLocalDescription(offer);
 
+        // send offer to answerer
         socket.emit("webrtcOffer", {
           target: answerFrom,
           sdp: offer,
           callId,
         });
-      } catch (error) {
-        console.error("Error creating offer:", error);
+      } catch (err) {
+        console.error("Error creating offer:", err);
         cleanupCall();
       }
     };
@@ -258,10 +283,54 @@ export const VideoCall = (socket, currentUser, receiver) => {
 
     const handleWebRTCOffer = async ({ sdp, from, callId }) => {
       try {
+        // If an existing PC is present, clean it up first
+        if (peerConnectionRef.current) {
+          peerConnectionRef.current.close();
+          peerConnectionRef.current = null;
+        }
+
+        // Mark that we got an incoming offer and save caller info
+        setCallState((prev) => ({
+          ...prev,
+          isIncomingCall: true,
+          isCalling: false,
+          isRinging: false,
+          callId,
+          callerInfo: { from, callerId: from }, // 'from' should be caller id
+        }));
+
+        // Create PC and attach local stream (getUserMedia must be called earlier / on accept)
         peerConnectionRef.current = createPeerConnection();
 
+        // If we already have local stream, add tracks (if not, we'll add them before answer)
+        if (localStreamRef.current) {
+          localStreamRef.current
+            .getTracks()
+            .forEach((track) =>
+              peerConnectionRef.current.addTrack(track, localStreamRef.current)
+            );
+        }
+
+        // set remote offer
         await peerConnectionRef.current.setRemoteDescription(sdp);
 
+        // If we don't have local stream yet (callee hasn't accepted), obtain it now so we can answer
+        if (!localStreamRef.current) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: callState.callType === "video" || true, // safe default, you'll prompt user
+            audio: true,
+          });
+          localStreamRef.current = stream;
+          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
+          stream
+            .getTracks()
+            .forEach((track) =>
+              peerConnectionRef.current.addTrack(track, stream)
+            );
+        }
+
+        // create answer and send it back
         const answer = await peerConnectionRef.current.createAnswer();
         await peerConnectionRef.current.setLocalDescription(answer);
 
@@ -270,18 +339,26 @@ export const VideoCall = (socket, currentUser, receiver) => {
           sdp: answer,
           callId,
         });
-      } catch (error) {
-        console.error("Error handling offer:", error);
+
+        // update callState to on-call
+        setCallState((prev) => ({
+          ...prev,
+          isIncomingCall: false,
+          isOnCall: true,
+        }));
+      } catch (err) {
+        console.error("Error handling offer:", err);
+        cleanupCall();
       }
     };
 
     const handleWebRTCAnswer = async ({ sdp }) => {
       if (!peerConnectionRef.current) return;
-
       try {
         await peerConnectionRef.current.setRemoteDescription(sdp);
-      } catch (error) {
-        console.error("Error handling answer:", error);
+      } catch (err) {
+        console.error("Error handling answer:", err);
+        cleanupCall();
       }
     };
 
