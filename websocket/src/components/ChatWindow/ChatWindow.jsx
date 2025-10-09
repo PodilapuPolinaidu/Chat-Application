@@ -46,14 +46,14 @@ const ChatWindow = React.memo(
         if (!content.trim() || !currentUser?.id || !receiver?.id || !room)
           return;
 
-        const tempId = Date.now();
+        const tempid = Date.now();
         const messageData = {
           senderid: currentUser.id,
           receiverid: receiver.id,
           content: content.trim(),
           room,
-          tempId,
-          senderName: currentUser.name,
+          tempid,
+          sendername: currentUser.name,
           timestamp: new Date().toISOString(),
         };
 
@@ -67,7 +67,7 @@ const ChatWindow = React.memo(
           if (savedMessage?.id) {
             setMessages((prev) =>
               prev.map((msg) =>
-                msg.tempId === tempId
+                msg.tempid === tempid
                   ? {
                       ...savedMessage,
                       sender: currentUser.name,
@@ -127,7 +127,7 @@ const ChatWindow = React.memo(
           const isDuplicate = prev.some(
             (msg) =>
               msg.id === message.id ||
-              (msg.tempId && msg.tempId === message.tempId)
+              (msg.tempid && msg.tempid === message.tempid)
           );
           return isDuplicate ? prev : [...prev, message];
         });
@@ -300,7 +300,7 @@ const ChatWindow = React.memo(
             messages.map((msg) => (
               <Message
                 key={
-                  msg.id || msg.tempId || `msg-${msg.timestamp}-${msg.senderid}`
+                  msg.id || msg.tempid || `msg-${msg.timestamp}-${msg.senderid}`
                 }
                 message={msg}
                 isOwn={msg.senderid === currentUser.id}

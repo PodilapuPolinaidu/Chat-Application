@@ -10,7 +10,7 @@ const chatController = {
       const result = await pool.query(
         `SELECT m.id, m.senderid, m.receiverid,
                 m.content, m.timestamp, m.status,
-                u1.name AS senderName
+                u1.name AS sendername
          FROM messages m
          JOIN users u1 ON m.senderid = u1.id
          WHERE (m.senderid = $1 AND m.receiverid = $2)
@@ -29,18 +29,18 @@ const chatController = {
   // ✅ Save a new message via REST API
   async saveMessage(req, res) {
     try {
-      const { senderid, receiverid, content, senderName, room } = req.body;
+      const { senderid, receiverid, content, sendername, room } = req.body;
 
       if (!senderid || !receiverid || !content) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
       const insertQuery = `
-        INSERT INTO messages (senderid, receiverid, content, status, senderName, room) 
+        INSERT INTO messages (senderid, receiverid, content, status, sendername, room) 
         VALUES ($1, $2, $3, $4, $5, $6) 
         RETURNING *
       `;
-      const values = [senderid, receiverid, content, "sent", senderName, room];
+      const values = [senderid, receiverid, content, "sent", sendername, room];
 
       const result = await pool.query(insertQuery, values);
 
@@ -54,13 +54,13 @@ const chatController = {
   // ✅ This one is for socket (optional)
   async saveMessageForSocket(messageData) {
     try {
-      const { senderid, receiverid, content, senderName, room } = messageData;
+      const { senderid, receiverid, content, sendername, room } = messageData;
 
       const result = await pool.query(
-        `INSERT INTO messages (senderid, receiverid, content, status, senderName, room) 
+        `INSERT INTO messages (senderid, receiverid, content, status, sendername, room) 
          VALUES ($1, $2, $3, $4, $5, $6) 
          RETURNING *`,
-        [senderid, receiverid, content, "sent", senderName, room]
+        [senderid, receiverid, content, "sent", sendername, room]
       );
 
       return result.rows[0];

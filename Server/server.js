@@ -83,8 +83,8 @@ const initDatabase = async () => {
         room VARCHAR(255) NOT NULL,
         status VARCHAR(50) DEFAULT 'sent',
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        senderName VARCHAR(100),
-        tempId BIGINT
+        sendername VARCHAR(100),
+        tempid BIGINT
       )
     `);
 

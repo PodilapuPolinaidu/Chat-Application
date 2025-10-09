@@ -63,7 +63,7 @@ const Message = React.memo(({ message, isOwn }) => {
     <div className={`messages ${isOwn ? "message-own" : "message-other"}`}>
       <div className="message-content">
         <div className="message-bubble">
-        {!isOwn && <div className="message-sender">{message.senderName}</div>}
+        {!isOwn && <div className="message-sender">{message.sendername}</div>}
           <p>{message.content}</p>
           <div className="message-meta">
             <span className="message-time">
